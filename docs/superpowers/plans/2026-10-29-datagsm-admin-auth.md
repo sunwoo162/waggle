@@ -41,7 +41,7 @@
 - apps/admin/src/app/sign-in/: BASE 로그인·설정 없음·실패 화면.
 - apps/admin/src/components/auth/: 로그인·로그아웃 상호작용.
 - scripts/setup-auth.mjs: 기존 파일을 덮어쓰지 않는 로컬 환경 파일 준비.
-- apps/admin/scripts/migrate-auth.ts: 명시적 세션 스키마 준비.
+- apps/admin/scripts/migrate-auth.mts: 명시적 세션 스키마 준비.
 - tests/auth-policy.test.ts, tests/auth-flow.test.ts, tests/auth-setup.test.mjs: 정책·실제 라이브러리 흐름·설정 보호.
 - docs/development/datagsm-auth.md: 등록·설정·검증 범위와 단일 서버 저장 조건.
 
@@ -49,33 +49,33 @@
 
 **Interfaces:** readAuthConfig(env) → ready/settings 또는 missing/errors(값 없음). parseDataGsmProfile(input) → 최소 id/email/name/status. isEligibleStudent(input) → boolean. isOperatorSubject(subject, configuredId) → boolean. initializeAuthEnv(file) → created:boolean.
 
-- [ ] 누락·짧은 secret·비 HTTPS 운영 URL·경로 포함 URL·잘못된 ID를 거부하고 loopback 개발 URL을 허용하는 테스트를 쓴다.
-- [ ] 잘못된 프로필·안전하지 않은 숫자 ID·PENDING·졸업/자퇴/정보 누락 거부, 다른 계정의 ADMIN 불허, 추가 개인정보 제거 테스트의 실패를 확인한다.
-- [ ] 환경·정책 모듈과 기존 환경 파일을 보존하는 준비 명령을 구현한다.
-- [ ] 해당 테스트 통과 후 `feat(auth): 운영자 인증 설정과 DataGSM 정책 추가`로 커밋한다.
+- [x] 누락·짧은 secret·비 HTTPS 운영 URL·경로 포함 URL·잘못된 ID를 거부하고 loopback 개발 URL을 허용하는 테스트를 쓴다.
+- [x] 잘못된 프로필·안전하지 않은 숫자 ID·PENDING·졸업/자퇴/정보 누락 거부, 다른 계정의 ADMIN 불허, 추가 개인정보 제거 테스트의 실패를 확인한다.
+- [x] 환경·정책 모듈과 기존 환경 파일을 보존하는 준비 명령을 구현한다.
+- [x] 해당 테스트 통과 후 `feat(auth): 운영자 인증 설정과 DataGSM 정책 추가`로 커밋한다.
 
 ### Task 2: 실제 Better Auth 흐름과 세션
 
 **Interfaces:** createDataGsmAuth({settings,database,fetcher?}) → BetterAuth instance. migrateAuth(options) → Promise<void>. authorizeAdmin(auth,database,headers,operatorSubject) → access result.
 
-- [ ] SQLite 메모리 DB와 합성 제공자로 실제 Better Auth handler를 호출하는 테스트를 먼저 작성하고 실패를 확인한다.
-- [ ] 인증 URL의 state·S256, JSON 토큰 교환·code_verifier·고정 userinfo URL을 검증한다.
-- [ ] 운영자 성공·다른 ADMIN 거부·PENDING 거부·state 변조/재사용·외부 redirect/Origin 거부를 검증한다.
-- [ ] DB 세션 재조회·새 인스턴스에서 재사용·만료·로그아웃·서버 운영자 설정 변경 후 차단을 검증한다.
-- [ ] 제공자 토큰은 암호화 저장하고 계정 자동 연결·불필요한 공개 엔드포인트·쿠키 세션 캐시는 끈다. 활성 세션은 요청마다 DB에서 확인한다.
-- [ ] 테스트 통과 후 `feat(auth): DataGSM PKCE와 영속 운영자 세션 연결`로 커밋한다.
+- [x] SQLite 메모리 DB와 합성 제공자로 실제 Better Auth handler를 호출하는 테스트를 먼저 작성하고 실패를 확인한다.
+- [x] 인증 URL의 state·S256, JSON 토큰 교환·code_verifier·고정 userinfo URL을 검증한다.
+- [x] 운영자 성공·다른 ADMIN 거부·PENDING 거부·state 변조/재사용·외부 redirect/Origin 거부를 검증한다.
+- [x] DB 세션 재조회·새 인스턴스에서 재사용·만료·로그아웃·서버 운영자 설정 변경 후 차단을 검증한다.
+- [x] 제공자 토큰은 암호화 저장하고 계정 자동 연결·불필요한 공개 엔드포인트·쿠키 세션 캐시는 끈다. 활성 세션은 요청마다 DB에서 확인한다.
+- [x] 테스트 통과 후 `feat(auth): DataGSM PKCE와 영속 운영자 세션 연결`로 커밋한다.
 
 ### Task 3: 관리자 경계·로그인 UI·설정 안내
 
 **Interfaces:** getAdminAccess(headers) → unconfigured/unavailable/unauthenticated/forbidden/authorized. 페이지·layout·API에서 같은 판정을 사용한다. /api/auth는 POST sign-in/social, GET callback/datagsm, POST sign-out만 허용한다.
 
-- [ ] API의 설정 없음 503·미인증 401·일반 계정 403·운영자 200 및 허용되지 않은 auth path/method 검사를 추가한다.
-- [ ] 지연 DB 초기화와 명시적 migration 명령, 서버 가드·새 로그인 화면·로그아웃을 구현한다.
-- [ ] /admin layout과 각 페이지에서 모두 검사한다. 민감한 데이터를 layout 경계만으로 보호하지 않는다.
-- [ ] 문서와 README에 http://127.0.0.1:3000/api/auth/callback/datagsm 등록 주소, 필요한 환경 이름, 실제 연동 대기를 기록한다. 실제 배포에는 HTTPS 콜백과 영속 DB 디스크가 필요하다.
-- [ ] `npm run check`, `npm run build`, 브라우저의 미로그인 리다이렉트·설정 없음·작은 화면 확인을 완료한다.
-- [ ] 독립 코드 리뷰 후 주요 발견을 재현 테스트로 수정하고 `feat(auth): 관리자 로그인 화면과 서버 접근 가드 추가`로 커밋한다.
-- [ ] #2를 참조하는 PR을 생성·연결하고 최신 커밋의 CI 결과를 확인한다. 실제 DataGSM 로그인은 클라이언트 등록 후 사용자 계정으로 별도 확인한다.
+- [x] API의 설정 없음 503·미인증 401·일반 계정 403·운영자 200 및 허용되지 않은 auth path/method 검사를 추가한다.
+- [x] 지연 DB 초기화와 명시적 migration 명령, 서버 가드·새 로그인 화면·로그아웃을 구현한다.
+- [x] /admin layout과 각 페이지에서 모두 검사한다. 민감한 데이터를 layout 경계만으로 보호하지 않는다.
+- [x] 문서와 README에 http://localhost:3000/api/auth/callback/datagsm 등록 주소, 필요한 환경 이름, 실제 연동 대기를 기록한다. 실제 배포에는 HTTPS 콜백과 영속 DB 디스크가 필요하다.
+- [x] `npm run check`, `npm run build`, 브라우저의 미로그인 리다이렉트·설정 없음·작은 화면 확인을 완료한다.
+- [x] `feat(auth): 관리자 로그인 화면과 서버 접근 가드 추가`로 커밋하고 독립 코드 리뷰를 수행한다. 이번 독립 리뷰에서는 수정 사항을 발견하지 않았다.
+- [x] #2를 참조하는 PR을 생성·연결하고 최신 커밋의 CI 결과를 확인한다. 실제 DataGSM 로그인은 클라이언트 등록 후 사용자 계정으로 별도 확인한다.
 
 ## 구현 판단
 
