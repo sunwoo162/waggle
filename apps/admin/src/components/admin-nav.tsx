@@ -1,0 +1,24 @@
+"use client";
+
+import { BookOpen, LayoutDashboard } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const items = [
+  { href: "/admin", title: "프로젝트 시작", icon: LayoutDashboard },
+  { href: "/admin/documents", title: "프로젝트 문서", icon: BookOpen },
+];
+
+export function AdminNav() {
+  const pathname = usePathname();
+  return (
+    <nav className="admin-nav" aria-label="관리자 메뉴">
+      {items.map(({ href, title, icon: Icon }) => (
+        <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}>
+          <Icon size={18} aria-hidden="true" />
+          <span>{title}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}

@@ -1,0 +1,33 @@
+{
+  "name": "waggle",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/admin"
+  ],
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10"
+  },
+  "packageManager": "npm@10.9.8",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "npm run docs:prepare && npm run dev --workspace @waggle/admin",
+    "test": "node --test tests/*.test.mjs",
+    "check:repo": "node scripts/check-repo.mjs",
+    "docs:build": "python docs/handbook/build_handbook.py",
+    "docs:prepare": "node scripts/prepare-docs.mjs",
+    "docs:check": "npm run docs:prepare && node scripts/check-docs.mjs",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check": "npm run test && npm run check:repo && npm run docs:check && npm run lint && npm run typecheck",
+    "build": "npm run docs:prepare && npm run build --workspace @waggle/admin"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@types/node": "22.19.15",
+    "marked": "18.1.2",
+    "typescript": "5.9.3"
+  }
+}
