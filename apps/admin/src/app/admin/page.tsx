@@ -174,10 +174,10 @@ export default async function AdminHome() {
             <li>
               <span className="step-icon">3</span>
               <div>
-                <strong>네트워크 관리와 기기 연결</strong>
-                <small>학교 설정 저장과 실제 연결 검증</small>
+                <strong>네트워크·AP 관리</strong>
+                <small>암호화 저장·등록·수정·설치 위치 조회 코드 구현</small>
               </div>
-              <span className="step-state">다음</span>
+              <span className="step-state">구현</span>
             </li>
           </ol>
         </section>
@@ -198,8 +198,8 @@ export default async function AdminHome() {
       <div className="development-notice">
         <ArrowDown size={14} aria-hidden="true" />
         <p>
-          운영자 인증을 적용한 개발 환경이에요. 실제 학교 네트워크 관리와 기기 연결은 후속
-          구현·실기기 검증이 필요해요.
+          운영자 인증과 네트워크·AP 관리 코드를 구현한 개발 환경입니다. 실제 계정 연동, 교내 데이터
+          등록과 앱 배포·기기 연결은 검증 전입니다.
         </p>
       </div>
     </div>

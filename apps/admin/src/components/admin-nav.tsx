@@ -1,11 +1,13 @@
 "use client";
 
-import { BookOpen, LayoutDashboard } from "lucide-react";
+import { BookOpen, LayoutDashboard, MapPin, Radio } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/admin", title: "프로젝트 시작", icon: LayoutDashboard },
+  { href: "/admin/networks", title: "네트워크", icon: Radio },
+  { href: "/admin/access-points", title: "AP 위치", icon: MapPin },
   { href: "/admin/documents", title: "프로젝트 문서", icon: BookOpen },
 ];
 

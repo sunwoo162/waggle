@@ -16,6 +16,8 @@
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "auth:setup": "node scripts/setup-auth.mjs",
     "auth:migrate": "tsx apps/admin/scripts/migrate-auth.mts",
+    "settings:setup": "node scripts/setup-school.mjs",
+    "settings:migrate": "tsx apps/admin/scripts/migrate-school.mts",
     "check:repo": "node scripts/check-repo.mjs",
     "docs:build": "python docs/handbook/build_handbook.py",
     "docs:prepare": "node scripts/prepare-docs.mjs",
@@ -30,6 +32,7 @@
     "@biomejs/biome": "2.6.4",
     "@types/better-sqlite3": "9.6.0",
     "@types/node": "22.19.15",
+    "dotenv": "18.0.9",
     "marked": "18.1.2",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
