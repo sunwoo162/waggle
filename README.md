@@ -4,7 +4,7 @@
 
 학교는 GSM 한 곳으로 고정합니다. 학교 선택·추가나 여러 학교를 운영하는 서비스 확장은 계획하지 않습니다.
 
-**현재 단계** 운영자 인증·네트워크/AP 관리 코드 구현 · DataGSM 클라이언트 등록·교내 실기기 검증 전  
+**현재 단계** 운영자 인증·네트워크/AP 관리·개인 코드와 기기 세션 코드 구현 · DataGSM 등록·네이티브 앱과 교내 실기기 검증 전  
 **대상** Android Kotlin · Windows C# · 관리자 웹  
 **시각 기준** 사용자 제공 BASE 디자인 시스템
 
@@ -24,19 +24,21 @@ npm run dev
 
 네트워크·AP 저장소는 [학교 설정 안내](docs/development/school-settings.md)에 따라 npm run settings:setup과 npm run settings:migrate로 별도 키·DB를 준비합니다. 비밀번호는 암호화하며 관리 응답에 반환하지 않습니다.
 
+개인 코드·기기 세션은 [발급·인증 안내](docs/development/personal-invites.md)에 따라 npm run members:migrate로 준비합니다. 코드 원문은 발급 직후 한 번만 확인할 수 있습니다. 앱 연결·학교 이메일 인증·DataGSM 네이티브 복귀는 후속 작업입니다.
+
 ```sh
 npm run check       # 동작 테스트·저장소·문서·Biome·타입
 npm run build       # 관리자 production build
 npm run docs:build  # 기획 문서 허브 재생성
 ```
 
-| 영역                | 위치                        | 현재                                                   |
-| ------------------- | --------------------------- | ------------------------------------------------------ |
-| 관리자 웹·공통 서버 | apps/admin                  | 운영자 인증·학교 네트워크/AP 관리, 실제 연동 검증 대기 |
-| Android             | apps/android                | Kotlin 구현·실기기 검증 예정                           |
-| Windows             | apps/windows                | C# 구현·실기기 검증 예정                               |
-| 기획·디자인         | docs                        | 제품·정책·BASE·화면 명세                               |
-| 개발 하네스         | AGENTS.md, scripts, .github | 커밋 훅·검사·PR CI                                     |
+| 영역                | 위치                        | 현재                                                        |
+| ------------------- | --------------------------- | ----------------------------------------------------------- |
+| 관리자 웹·공통 서버 | apps/admin                  | 운영자 인증·네트워크/AP·개인 코드·기기 세션, 실제 연동 대기 |
+| Android             | apps/android                | Kotlin 구현·실기기 검증 예정                                |
+| Windows             | apps/windows                | C# 구현·실기기 검증 예정                                    |
+| 기획·디자인         | docs                        | 제품·정책·BASE·화면 명세                                    |
+| 개발 하네스         | AGENTS.md, scripts, .github | 커밋 훅·검사·PR CI                                          |
 
 ## 협업 방식
 

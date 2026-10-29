@@ -13,6 +13,7 @@
 - [DataGSM 조사 기록](../../research/2026-10-29-datagsm-data.md)
 - [운영자 인증 등록·실행 안내](../../development/datagsm-auth.md)
 - [학교 네트워크·AP 저장소 안내](../../development/school-settings.md)
+- [개인 코드 발급·기기 세션 안내](../../development/personal-invites.md)
 
 ## 구성 참고
 

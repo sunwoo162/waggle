@@ -756,7 +756,7 @@
 <p>연결 관리 중에는 차분한 상태 갱신을 사용하고, 캐릭터 수집 순간에 짧은 해금 모션을 사용한다. 동작 줄이기 설정에서는 과한 축하·이동 효과를 줄인다.</p>
 <h2 id="section-design-8">8. 현재 작업 단계</h2>
 <p>이 문서는 디자인 기준이다. 관리자 웹의 시작·문서·로그인 화면을 구현했고 실제 화면을 보며 다듬고 있다. Android·Windows 화면은 각 앱을 개발하면서 같은 토큰을 적용한다.</p>
-</div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/07-design.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#design~section-design-1">1. 적용 원칙</a><a class="level2" href="#design~section-design-2">2. 기본 색상</a><a class="level2" href="#design~section-design-3">3. 의미별 적용 제안</a><a class="level2" href="#design~section-design-4">4. 타이포그래피</a><a class="level2" href="#design~section-design-5">5. 간격·모서리·깊이</a><a class="level2" href="#design~section-design-6">6. 컴포넌트 상태</a><a class="level2" href="#design~section-design-7">7. 모션</a><a class="level2" href="#design~section-design-8">8. 현재 작업 단계</a></nav></div><div class="reading-grid" data-page="validation" id="page-validation" hidden><article class="document"><header class="doc-header"><div class="eyebrow">VALIDATION</div><h1>기술 검증과 완료 기준</h1><p class="doc-summary">문서로 확인한 가능성과 학교·기기에서 확인할 항목을 구분합니다.</p><div class="doc-meta"><span class="status-badge neutral">실기기 검증 대기</span><span>2026.10.29 기준 · <a href="../product/project-planning.md">기획 원문 ↗</a></span></div></header><div class="prose"><aside class="doc-note pending"><span>검증 대기</span><p>개발 기반·운영자 웹 인증 코드를 구현했습니다. 실제 DataGSM 계정 연동과 교내 연결 검증은 아직이며, 화면 시안은 그 검증 결과가 아닙니다.</p></aside><h2 id="section-validation-1">플랫폼별 출시 조건</h2>
+</div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/07-design.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#design~section-design-1">1. 적용 원칙</a><a class="level2" href="#design~section-design-2">2. 기본 색상</a><a class="level2" href="#design~section-design-3">3. 의미별 적용 제안</a><a class="level2" href="#design~section-design-4">4. 타이포그래피</a><a class="level2" href="#design~section-design-5">5. 간격·모서리·깊이</a><a class="level2" href="#design~section-design-6">6. 컴포넌트 상태</a><a class="level2" href="#design~section-design-7">7. 모션</a><a class="level2" href="#design~section-design-8">8. 현재 작업 단계</a></nav></div><div class="reading-grid" data-page="validation" id="page-validation" hidden><article class="document"><header class="doc-header"><div class="eyebrow">VALIDATION</div><h1>기술 검증과 완료 기준</h1><p class="doc-summary">문서로 확인한 가능성과 학교·기기에서 확인할 항목을 구분합니다.</p><div class="doc-meta"><span class="status-badge neutral">실기기 검증 대기</span><span>2026.10.29 기준 · <a href="../product/project-planning.md">기획 원문 ↗</a></span></div></header><div class="prose"><aside class="doc-note pending"><span>검증 대기</span><p>운영자 인증·네트워크/AP 관리·개인 코드와 기기 세션 코드를 구현했습니다. 실제 계정 연동·네이티브 앱·교내 연결은 검증 전이며, 화면 시안은 그 검증 결과가 아닙니다.</p></aside><h2 id="section-validation-1">플랫폼별 출시 조건</h2>
 <p>Windows는 Native Wi-Fi API를 이용한 조회·프로필 연결 요청과 트레이 실행을 검증한다. 권한·드라이버별 차이, 창 닫기·재열기와 관리 프로세스 중복 실행을 확인한다.</p>
 <p>Android는 일반 설치 앱의 권한 범위에서 네트워크 제안을 제공한다. 화면을 내렸을 때의 실행, 실행 알림, 화면 꺼짐·절전·제조사 정책, 검색 제한과 연결 성공 관찰을 실제 기기에서 확인한다. 앱이 원하는 순간의 AP 강제 전환을 출시 약속으로 넣지 않는다.</p>
 <p>학교 현장에서는 여러 SSID인지 같은 SSID의 여러 AP인지, 공유 암호 인증인지 추가 로그인 화면이 있는지, AP별 BSSID와 실제 설치 장소가 어떤지 확인한다. 학교의 외부 IP가 같다는 이유만으로 끊김 없는 내부 로밍을 가정하지 않는다.</p>
@@ -812,7 +812,7 @@
 </tbody></table></div>
 <p>Android 제안이 적용되지 않거나 기본 OS보다 개선이 없다면 지원 범위와 제품 약속을 다시 검토한다. 숫자 기준과 주기는 실제 조건 확인 후 정한다.</p>
 </div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/08-validation.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#validation~section-validation-1">플랫폼별 출시 조건</a><a class="level2" href="#validation~section-validation-2">기획에서 정하는 성공 기준</a><a class="level2" href="#validation~section-validation-3">검증 기록</a></nav></div><div class="reading-grid" data-page="roadmap" id="page-roadmap" hidden><article class="document"><header class="doc-header"><div class="eyebrow">ROADMAP</div><h1>개발 일정과 역할</h1><p class="doc-summary">임의의 마감일 대신 단계별 목표와 통과 조건으로 정리합니다.</p><div class="doc-meta"><span class="status-badge neutral">달력 일정 미정</span><span>2026.10.29 기준</span></div></header><div class="prose"><h2 id="section-roadmap-1">현재 위치</h2>
-<p>개발 하네스·관리자 문서 메뉴의 첫 PR을 병합했다. 운영자 OAuth·영속 세션·서버 가드를 구현했으며, DataGSM 클라이언트 등록과 실제 계정 연동·학교 현장·네트워크 연결은 검증 전이다.</p>
+<p>운영자 OAuth·서버 가드, 네트워크/AP 관리와 개인 코드·기기 세션 코드를 구현했다. DataGSM 클라이언트 등록과 실제 계정 연동·네이티브 앱·학교 현장 연결은 검증 전이다. 학교 이메일 인증·DataGSM 네이티브 복귀와 설정 배포는 후속 작업이다.</p>
 <h2 id="section-roadmap-2">단계별 목표</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -1090,7 +1090,7 @@
 <h2 id="section-decisions-3">남은 결정과 현재 위치</h2>
 <p>사용자 결정이 필요한 제품 제안은 도감 항목 묶음 방식, 같은 계정의 기기 간 도감 공유, 첫 출시의 부팅 자동 시작 범위다. 현재 제안은 관리자가 정한 도감 항목에 AP를 매핑하고, 같은 계정의 진행도를 공유하며, 부팅 자동 시작은 첫 출시의 필수 조건으로 두지 않는 것이다.</p>
 <p>학교 SSID 구조·인증 방식·실제 Android 동작은 현장·기기 검증으로 확인할 항목이다. 프레임워크·DB·API 경로·정확한 임계값·알림 구현은 구현 계획에서 정할 항목이다. 이 세 종류를 섞어 같은 수준의 사용자 질문으로 취급하지 않는다.</p>
-<p>제품 기획을 바탕으로 구현을 진행하고 있다. 현재 운영자 인증과 네트워크/AP 관리 코드를 작성했으며, 학생 로그인·설정 배포·네이티브 연결·도감은 후속 구현과 현장 검증이 필요하다. 위 미확정 제품 제안은 구현 완료로 간주하지 않는다.</p>
+<p>제품 기획을 바탕으로 구현을 진행하고 있다. 운영자 인증·네트워크/AP 관리와 개인 코드·기기 세션 코드를 작성했다. 학교 이메일 인증·DataGSM 네이티브 복귀·설정 배포·네이티브 연결·도감은 후속 구현과 현장 검증이 필요하다. 위 미확정 제품 제안은 구현 완료로 간주하지 않는다.</p>
 <h2 id="section-decisions-4">상태의 의미</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -1249,6 +1249,7 @@
 <li><a href="#research">DataGSM 조사 기록</a></li>
 <li><a href="../development/datagsm-auth.md">운영자 인증 등록·실행 안내</a></li>
 <li><a href="../development/school-settings.md">학교 네트워크·AP 저장소 안내</a></li>
+<li><a href="../development/personal-invites.md">개인 코드 발급·기기 세션 안내</a></li>
 </ul>
 <h2 id="section-resources-2">구성 참고</h2>
 <p><a href="https://app.notion.com/p/TEAM-GSM-SERVER-c0993fbd192d823a9ca201733be710ab?source=copy_link" target="_blank" rel="noopener noreferrer">TEAM GSM SERVER</a>의 프로젝트 홈과 하위 문서 분류를 참고했다. 소개·기능명세·정책·설계·일정·운영을 묶는 구성을 활용했다. 해당 프로젝트의 서비스 내용·인원·비용·일정을 우리 프로젝트의 사실로 옮기지 않았다.</p>
