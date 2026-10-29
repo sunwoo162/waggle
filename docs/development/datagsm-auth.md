@@ -56,6 +56,8 @@ npm run dev
 
 브라우저는 **http://localhost:3000/sign-in**으로 연다. 브라우저 origin과 BETTER_AUTH_URL을 일치시킨다. 설정 변경 후 서버를 다시 시작한다.
 
+실행 명령은 서버를 IPv4 loopback인 127.0.0.1에 연다. Windows의 localhost 해석이 IPv6로만 바인딩되는 경우를 피하기 위한 설정이다. OAuth에 사용하는 브라우저 주소·BETTER_AUTH_URL·등록 콜백은 계속 localhost로 통일한다.
+
 마이그레이션은 고정된 Better Auth 버전의 스키마를 사용한다. 데이터가 있는 테이블에 안전하지 않은 필수 컬럼 추가·스키마 충돌이 있으면 자동 진행하지 않는다. 서버 요청 중에는 스키마를 자동 변경하지 않는다.
 
 ## 실제 계정 검증
