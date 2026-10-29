@@ -4,6 +4,10 @@ out/
 coverage/
 *.tsbuildinfo
 **/next-env.d.ts
+**/.data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 .env
 .env.*
 !.env.example
