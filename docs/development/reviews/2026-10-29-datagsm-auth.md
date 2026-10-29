@@ -37,3 +37,13 @@
 ## 다음 외부 검증
 
 [인증 설정 안내](../datagsm-auth.md)에 따라 DataGSM 클라이언트와 운영자 계정 ID를 설정한 뒤 실제 계정 인증·취소·로그아웃을 확인한다. 로컬 콜백은 `http://localhost:3000/api/auth/callback/datagsm`이다. 실제 등록 화면의 localhost 허용 여부와 운영 HTTPS 쿠키·콜백은 해당 환경에서 별도로 확인한다.
+
+## 후속 시각 정리
+
+사용자의 폰트·크기·레이아웃 수정 요청으로 Pretendard Variable 1.3.9를 로컬 제공하고 로그인 화면을 400px 단일 열로 정리했다. 영문 장식·소개 영역·중복 권한 설명을 덜고 제목 28px, 본문·버튼 14~16px, 보조 설명 12px를 적용했다. 위 독립 인증 리뷰와 구분되는 후속 표현 변경이다.
+
+브라우저에서 실제 적용된 서체와 글자 크기, 로컬 폰트 응답 200, 가로 넘침 없음, 375px 줄바꿈·설정 안내 펼침을 확인했다. 기존 테스트 29개와 check·production build를 통과했다. 서버의 운영자 판정과 로그인·로그아웃 요청 로직은 변경하지 않았다.
+
+![정리한 로그인 화면](../previews/admin-sign-in-refined.png)
+
+![375px 로그인 확인](../previews/admin-sign-in-mobile.png)
