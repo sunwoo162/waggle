@@ -15,7 +15,10 @@ export function readSchoolConfig(env: Record<string, string | undefined>, root: 
   );
   if (filename.toLowerCase() === authFile.toLowerCase()) return unavailable();
   for (const directory of ["public", ".next"]) {
-    const relative = path.relative(path.join(root, directory), filename);
+    const relative = path.relative(
+      path.join(/* turbopackIgnore: true */ root, directory),
+      filename,
+    );
     if (
       !relative ||
       (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))
