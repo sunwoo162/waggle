@@ -1,0 +1,17 @@
+:root {
+  --white: #ffffff;
+  --black: #0d181e;
+  --ink: #233237;
+  --prime: #0bb7ae;
+  --prime-dark: #00827a;
+  --prime-deep: #105151;
+  --prime-pale: #e0f3f4;
+  --prime-soft: #f3fbfa;
+  --pink: #fc6589;
+  --muted: #636978;
+  --subtle: #838996;
+  --line: #edeef1;
+  --line-strong: #dadce0;
+  --panel: #f7f8f9;
+  --sidebar: #fcfdfd;
+}
