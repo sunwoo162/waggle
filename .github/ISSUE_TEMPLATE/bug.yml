@@ -1,0 +1,22 @@
+name: 오류 보고
+description: 재현 가능한 오류를 기록합니다.
+title: "[오류] "
+labels: [bug]
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 순서와 실제 결과
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS·앱 버전·기기
+      description: 비밀번호·코드·토큰·학생 개인정보는 적지 마세요.

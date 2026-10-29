@@ -1,0 +1,22 @@
+name: 기능 제안·구현
+description: 사용자 결과와 완료 조건을 정리합니다.
+title: "[기능] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 문제와 원하는 결과
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 조건과 확인 방법
+      description: 실제 사용자 흐름과 실패 상태를 포함해주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: 범위·외부 조건
