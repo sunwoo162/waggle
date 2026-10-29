@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight, MapPin, Radio, ShieldCheck, Sparkles, Wifi } from "lucide-react";
+import { BookOpen, ChevronRight, ShieldCheck, Sparkles, Wifi } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminNav } from "./admin-nav";
@@ -25,7 +25,7 @@ export function AdminShell({
             <strong>
               와글<span className="brand-dot">.</span>
             </strong>
-            <small>ADMIN WORKSPACE</small>
+            <small>학교 Wi-Fi 관리</small>
           </span>
         </Link>
         <div className="workspace-label">
@@ -39,14 +39,6 @@ export function AdminShell({
         <AdminNav />
         <div className="upcoming-nav">
           <div className="nav-label">다음에 만나요</div>
-          <span>
-            <Radio size={17} aria-hidden="true" />
-            네트워크<small>준비 중</small>
-          </span>
-          <span>
-            <MapPin size={17} aria-hidden="true" />
-            AP 위치<small>준비 중</small>
-          </span>
           <span>
             <Sparkles size={17} aria-hidden="true" />
             도감 관리<small>준비 중</small>
