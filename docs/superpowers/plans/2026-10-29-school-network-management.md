@@ -28,10 +28,10 @@ Files: shared/school.ts, server/school/{errors,crypto,store}.ts, tests/school-st
 
 Interfaces: CredentialCipher.seal/open(value,purpose), migrateSchoolDatabase(db,key), SchoolStore.snapshot/saveNetwork/saveAccessPoint. Snapshot은 비밀번호·암호문을 포함하지 않는다.
 
-- [ ] 실제 메모리/재개방 SQLite로 암호문·키/태그/AAD 오류·원문 미반환·revision 충돌·버전 원자성·SSID 바이트·BSSID 중복/위치 없음의 실패 테스트를 먼저 확인한다.
-- [ ] 구현하고 해당 테스트를 통과시킨다. 네트워크 비활성화 시 AP 기록은 유지하며 effectiveEnabled를 구분한다.
-- [ ] 설정·키 준비와 명시적 migration, .env 예시·문서를 추가한다. 키 생성은 기존 값을 보존하고 출력하지 않는다.
-- [ ] 의미 있는 저장 기능 커밋을 만든다.
+- [x] 실제 메모리/재개방 SQLite로 암호문·키/태그/AAD 오류·원문 미반환·revision 충돌·버전 원자성·SSID 바이트·BSSID 중복/위치 없음의 실패 테스트를 먼저 확인한다.
+- [x] 구현하고 해당 테스트를 통과시킨다. 네트워크 비활성화 시 AP 기록은 유지하며 effectiveEnabled를 구분한다.
+- [x] 설정·키 준비와 명시적 migration, .env 예시·문서를 추가한다. 키 생성은 기존 값을 보존하고 출력하지 않는다.
+- [x] 의미 있는 저장 기능 커밋을 만든다.
 
 ## Task 2: 관리 API와 서버 경계
 
@@ -39,16 +39,16 @@ Files: server/school/{http,runtime}.ts, app/api/admin/school/[[...path]]/route.t
 
 Interfaces: createSchoolHandler({getAccess,getStore,origin}) → Request handler. GET /api/admin/school, POST networks/access-points, PATCH networks/:id/access-points/:id.
 
-- [ ] 401/403/503·외부/누락 Origin·과대 본문·잘못된 JSON/메서드·안전한 오류·원문 미반환 테스트를 먼저 실패시킨다.
-- [ ] 실제 저장소와 핸들러로 쓰기/재조회/충돌을 검증한다. 인증 실패 시 저장소를 열지 않는다.
-- [ ] 지연 runtime과 얇은 Next 경로를 연결하고 커밋한다.
+- [x] 401/403/503·외부/누락 Origin·과대 본문·잘못된 JSON/메서드·안전한 오류·원문 미반환 테스트를 먼저 실패시킨다.
+- [x] 실제 저장소와 핸들러로 쓰기/재조회/충돌을 검증한다. 인증 실패 시 저장소를 열지 않는다.
+- [x] 지연 runtime과 얇은 Next 경로를 연결하고 커밋한다.
 
 ## Task 3: 관리 화면과 검증
 
 Files: components/school/*, app/admin/{networks,access-points}/page.tsx, management.css, admin-nav/shell, 개발 문서.
 
-- [ ] 네트워크 추가·수정·비활성화, 빈 상태·실패·저장 중·충돌과 비밀번호 유지/교체 입력을 제공한다.
-- [ ] 전체 AP 목록·이름/BSSID 검색·건물/층/위치 미등록 필터·등록/수정을 제공한다. 부모 네트워크 비활성화를 별도로 표시한다.
-- [ ] 실제 컴포넌트의 합성 UI 자료를 별도 검증하고 미로그인 제품 경로 차단을 확인한다. 실계정·실제 학교 연결로 표시하지 않는다.
-- [ ] npm run check/build, 문서 재생성, 독립 리뷰와 필요한 한 차례 수정, 최신 CI를 확인한다.
-- [ ] #3 PR을 생성·연결하고 구현/검증/현장 검증 경계를 기록한다.
+- [x] 네트워크 추가·수정·비활성화, 빈 상태·실패·저장 중·충돌과 비밀번호 유지/교체 입력을 제공한다.
+- [x] 전체 AP 목록·이름/BSSID 검색·건물/층/위치 미등록 필터·등록/수정을 제공한다. 부모 네트워크 비활성화를 별도로 표시한다.
+- [x] 실제 컴포넌트의 합성 UI 자료를 별도 검증하고 미로그인 제품 경로 차단을 확인한다. 실계정·실제 학교 연결로 표시하지 않는다.
+- [x] npm run check/build, 문서 재생성, 독립 리뷰와 필요한 한 차례 수정, 최신 CI를 확인한다.
+- [x] #3 PR을 생성·연결하고 구현/검증/현장 검증 경계를 기록한다.

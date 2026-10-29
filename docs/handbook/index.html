@@ -146,7 +146,7 @@
 <li>다음 이용에서는 저장된 설정과 기록을 이어서 활용한다.</li>
 </ol>
 <p>DataGSM 인증 성공은 학교 와이파이 연결 성공과 다른 사건이다. 주변에서 SSID가 보이는 것, 연결 요청을 보낸 것, 연결에 실패한 것은 도감 해금 사건이 아니다. 앱을 켰을 때 이미 연결되어 있다면 현재 연결을 실제로 확인한 뒤 수집 대상으로 처리할 수 있다. 앱이 관찰하지 않은 과거 연결 이력을 임의로 만들어 수집하지 않는다.</p>
-</div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/01-overview.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#overview~section-overview-1">제품의 중심</a><a class="level2" href="#overview~section-overview-2">사용자와 확정한 사항</a><a class="level2" href="#overview~section-overview-3">첫 출시 범위</a><a class="level3" href="#overview~section-overview-4">일반 사용자 앱</a><a class="level3" href="#overview~section-overview-5">관리자 웹</a><a class="level3" href="#overview~section-overview-6">첫 출시 이후 검토</a><a class="level2" href="#overview~section-overview-7">핵심 사용 흐름</a></nav></div><div class="reading-grid" data-page="features" id="page-features" hidden><article class="document"><header class="doc-header"><div class="eyebrow">REQUIREMENTS</div><h1>기능명세서</h1><p class="doc-summary">서비스의 기능과 완료 조건을 한 표에서 비교합니다.</p><div class="doc-meta"><span class="status-badge neutral">구현 진행</span><span>2026.10.29 기준</span></div></header><div class="prose"><aside class="doc-note pending"><span>구현 진행</span><p>기능 범위를 정리한 표입니다. 운영자 웹 인증 코드는 구현했으며 실제 계정 연동·앱 기능은 검증 전입니다.</p></aside><h2 id="section-features-1">사용자 기능</h2>
+</div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/01-overview.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#overview~section-overview-1">제품의 중심</a><a class="level2" href="#overview~section-overview-2">사용자와 확정한 사항</a><a class="level2" href="#overview~section-overview-3">첫 출시 범위</a><a class="level3" href="#overview~section-overview-4">일반 사용자 앱</a><a class="level3" href="#overview~section-overview-5">관리자 웹</a><a class="level3" href="#overview~section-overview-6">첫 출시 이후 검토</a><a class="level2" href="#overview~section-overview-7">핵심 사용 흐름</a></nav></div><div class="reading-grid" data-page="features" id="page-features" hidden><article class="document"><header class="doc-header"><div class="eyebrow">REQUIREMENTS</div><h1>기능명세서</h1><p class="doc-summary">서비스의 기능과 완료 조건을 한 표에서 비교합니다.</p><div class="doc-meta"><span class="status-badge neutral">구현 진행</span><span>2026.10.29 기준</span></div></header><div class="prose"><aside class="doc-note pending"><span>구현 진행</span><p>운영자 웹 인증과 네트워크·AP 관리 코드는 구현했습니다. 실제 계정 연동·교내 설정·앱 기능은 검증 전입니다.</p></aside><h2 id="section-features-1">사용자 기능</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1089,7 +1089,7 @@
 <h2 id="section-decisions-3">남은 결정과 현재 위치</h2>
 <p>사용자 결정이 필요한 제품 제안은 도감 항목 묶음 방식, 같은 계정의 기기 간 도감 공유, 첫 출시의 부팅 자동 시작 범위다. 현재 제안은 관리자가 정한 도감 항목에 AP를 매핑하고, 같은 계정의 진행도를 공유하며, 부팅 자동 시작은 첫 출시의 필수 조건으로 두지 않는 것이다.</p>
 <p>학교 SSID 구조·인증 방식·실제 Android 동작은 현장·기기 검증으로 확인할 항목이다. 프레임워크·DB·API 경로·정확한 임계값·알림 구현은 구현 계획에서 정할 항목이다. 이 세 종류를 섞어 같은 수준의 사용자 질문으로 취급하지 않는다.</p>
-<p>다음 산출물은 위 제안을 반영해 검토할 수 있는 제품 기획 확정안과, 그 뒤의 상세 구현 계획이다. 현재 화면 시안이나 Figma 설명서만으로 제품 개발 기획이 전부 끝났다고 간주하지 않는다.</p>
+<p>제품 기획을 바탕으로 구현을 진행하고 있다. 현재 운영자 인증과 네트워크/AP 관리 코드를 작성했으며, 학생 로그인·설정 배포·네이티브 연결·도감은 후속 구현과 현장 검증이 필요하다. 위 미확정 제품 제안은 구현 완료로 간주하지 않는다.</p>
 <h2 id="section-decisions-4">상태의 의미</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -1247,6 +1247,7 @@
 <li><a href="../design/references/base-original.md">BASE 원본 자료</a></li>
 <li><a href="#research">DataGSM 조사 기록</a></li>
 <li><a href="../development/datagsm-auth.md">운영자 인증 등록·실행 안내</a></li>
+<li><a href="../development/school-settings.md">학교 네트워크·AP 저장소 안내</a></li>
 </ul>
 <h2 id="section-resources-2">구성 참고</h2>
 <p><a href="https://app.notion.com/p/TEAM-GSM-SERVER-c0993fbd192d823a9ca201733be710ab?source=copy_link" target="_blank" rel="noopener noreferrer">TEAM GSM SERVER</a>의 프로젝트 홈과 하위 문서 분류를 참고했다. 소개·기능명세·정책·설계·일정·운영을 묶는 구성을 활용했다. 해당 프로젝트의 서비스 내용·인원·비용·일정을 우리 프로젝트의 사실로 옮기지 않았다.</p>

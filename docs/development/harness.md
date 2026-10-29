@@ -24,5 +24,6 @@ PR의 확인 명령·결과와 관련 이슈가 영속 기록이다. 실행 중 
 ## 변경 기록
 
 - 2026-10-29: 공개 저장소·루트 AGENTS·커밋 훅·Node 테스트·문서 이식·PR CI 기반 구성.
+- 2026-10-29: settings:setup과 settings:migrate 추가. dotenv 파서로 기존 암호화 키를 보존하며 명시적 준비 명령으로만 학교 설정 스키마를 변경한다.
 
 참고한 공개 저장소: [Washer-Client-v2](https://github.com/sunwoo162/Washer-Client-v2). 세부 기술과 상태는 와글의 실제 파일·검사 결과를 기준으로 한다.

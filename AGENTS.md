@@ -6,7 +6,7 @@
 
 ## 저장소와 현재 단계
 
-학교 Wi-Fi 자동 관리·캐릭터 수집 서비스다. Android는 Kotlin, Windows는 C#, 관리자 웹·공통 API는 TypeScript다. 운영자는 한 명이다. 개발 기반·문서 메뉴와 DataGSM 운영자 인증 코드를 구현했다. 실제 클라이언트 등록·사람 계정 연동은 아직 검증 전이다. 실제 인증·학교 자격증명·기기 연결이 구현되기 전에는 동작하는 것으로 표시하지 않는다.
+학교 Wi-Fi 자동 관리·캐릭터 수집 서비스다. Android는 Kotlin, Windows는 C#, 관리자 웹·공통 API는 TypeScript다. 운영자는 한 명이다. 개발 기반·문서 메뉴·DataGSM 운영자 인증과 네트워크/AP 암호화 저장·관리 코드를 구현했다. 실제 클라이언트 등록·사람 계정·학교 연결은 검증 전이다. 합성 UI 검증을 실제 학교 사용으로 표시하지 않는다.
 
 ## 명령
 
@@ -14,6 +14,7 @@
 - `npm run setup`: 이 저장소의 커밋 훅 설치. 사용자 전역 설정은 바꾸지 않는다.
 - `npm run dev`: 관리자 개발 서버와 문서 자료 준비.
 - `npm run test`: 의미 있는 동작·경계 테스트.
+- `npm run settings:setup`, `npm run settings:migrate`: 기존 키를 보존하는 학교 설정 키 준비와 명시적 스키마 준비.
 - `npm run check`: 테스트, 비밀 파일 검사, 문서 링크, Biome, TypeScript.
 - `npm run build`: 문서 자료 준비와 production build.
 - `npm run docs:build`: Python 3.11+와 Node 22로 문서 허브 재생성.

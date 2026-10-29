@@ -45,7 +45,7 @@ def build_pages(docs_root):
 
         page("features", "기능명세서", "REQUIREMENTS", "기획", "구현 진행",
              "서비스의 기능과 완료 조건을 한 표에서 비교합니다.",
-             note("pending", "구현 진행", "기능 범위를 정리한 표입니다. 운영자 웹 인증 코드는 구현했으며 실제 계정 연동·앱 기능은 검증 전입니다.") + """
+             note("pending", "구현 진행", "운영자 웹 인증과 네트워크·AP 관리 코드는 구현했습니다. 실제 계정 연동·교내 설정·앱 기능은 검증 전입니다.") + """
 
 ## 사용자 기능
 
@@ -313,6 +313,7 @@ Android 제안이 적용되지 않거나 기본 OS보다 개선이 없다면 지
 - [BASE 원본 자료](../design/references/base-original.md)
 - [DataGSM 조사 기록](../research/2026-10-29-datagsm-data.md)
 - [운영자 인증 등록·실행 안내](../development/datagsm-auth.md)
+- [학교 네트워크·AP 저장소 안내](../development/school-settings.md)
 
 ## 구성 참고
 
