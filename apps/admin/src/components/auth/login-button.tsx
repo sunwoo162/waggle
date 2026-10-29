@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, LoaderCircle } from "lucide-react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "./auth-client";
 
@@ -33,14 +33,11 @@ export function LoginButton({ enabled }: { enabled: boolean }) {
         onClick={signIn}
         disabled={!enabled || pending}
       >
-        <span className="dg-mark" aria-hidden="true">
-          D
-        </span>
         <span>{pending ? "DataGSM으로 이동 중" : "DataGSM으로 로그인"}</span>
         {pending ? (
           <LoaderCircle className="loading-icon" size={18} aria-hidden="true" />
         ) : (
-          <ArrowUpRight size={18} aria-hidden="true" />
+          <ArrowRight size={18} aria-hidden="true" />
         )}
       </button>
       <p className="login-action-error" role="status" aria-live="polite">
