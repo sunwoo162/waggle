@@ -124,7 +124,7 @@ export default async function SignInPage({
         </section>
       </main>
 
-      <footer className="login-footer">와글 · 학교 Wi-Fi 관리</footer>
+      <footer className="login-footer">와글 · 광주소프트웨어마이스터고등학교</footer>
     </div>
   );
 }

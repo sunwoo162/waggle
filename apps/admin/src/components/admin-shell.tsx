@@ -31,9 +31,10 @@ export function AdminShell({
         <div className="workspace-label">
           <span className="school-avatar">G</span>
           <span>
-            GSM 캠퍼스<small>와글 프로젝트</small>
+            광주소프트웨어
+            <br />
+            마이스터고등학교
           </span>
-          <ChevronRight size={15} aria-hidden="true" />
         </div>
         <div className="nav-label">워크스페이스</div>
         <AdminNav />
