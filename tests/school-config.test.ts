@@ -37,3 +37,34 @@ test("키 준비 명령은 기존 인증 값·기존 암호화 키를 보존한�
     await rm(dir, { recursive: true, force: true });
   }
 });
+test("키 준비는 공백·export·따옴표·콜론 문법의 기존 키를 보존하고 중복을 거부한다", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "waggle-school-dotenv-"));
+  const key = "b".repeat(64);
+  try {
+    const filename = path.join(dir, ".env.local");
+    for (const line of [
+      `WAGGLE_SETTINGS_ENCRYPTION_KEY = ${key}`,
+      `export WAGGLE_SETTINGS_ENCRYPTION_KEY=${key}`,
+      ` WAGGLE_SETTINGS_ENCRYPTION_KEY="${key}" # comment`,
+      `WAGGLE_SETTINGS_ENCRYPTION_KEY: '${key}'`,
+    ]) {
+      const source = `BETTER_AUTH_SECRET=synthetic-test\n${line}\n`;
+      await writeFile(filename, source);
+      assert.equal(await initializeSchoolEnv(filename), false);
+      assert.equal(await readFile(filename, "utf8"), source);
+    }
+    const duplicate = `WAGGLE_SETTINGS_ENCRYPTION_KEY=${key}\nexport WAGGLE_SETTINGS_ENCRYPTION_KEY = ${key}\n`;
+    await writeFile(filename, duplicate);
+    await assert.rejects(() => initializeSchoolEnv(filename), /duplicate/);
+    assert.equal(await readFile(filename, "utf8"), duplicate);
+    await writeFile(filename, 'export WAGGLE_SETTINGS_ENCRYPTION_KEY = "" # empty\n');
+    assert.equal(await initializeSchoolEnv(filename), true);
+    assert.match(
+      await readFile(filename, "utf8"),
+      /^WAGGLE_SETTINGS_ENCRYPTION_KEY=[a-f0-9]{64}\n$/,
+    );
+  } finally {
+    assert.ok(path.resolve(dir).startsWith(path.resolve(os.tmpdir()) + path.sep));
+    await rm(dir, { recursive: true, force: true });
+  }
+});

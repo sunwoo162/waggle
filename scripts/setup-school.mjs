@@ -2,15 +2,21 @@ import { randomBytes } from "node:crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse } from "dotenv";
 
 export async function initializeSchoolEnv(file) {
   const original = await readFile(file, "utf8");
-  const existing = original.match(/^WAGGLE_SETTINGS_ENCRYPTION_KEY=(.*)$/gm) || [];
+  const assignment =
+    /^[\t ]*(?:export[\t ]+)?WAGGLE_SETTINGS_ENCRYPTION_KEY[\t ]*(?:=[\t ]*|:[\t ]+)[^\r\n]*/gm;
+  const existing = original.match(assignment) || [];
   if (existing.length > 1) throw new Error("duplicate_settings_key");
-  if (existing.length && existing[0].split("=").slice(1).join("=").trim()) return false;
+  const parsed = parse(original);
+  if (parsed.WAGGLE_SETTINGS_ENCRYPTION_KEY) return false;
+  if (existing.length && parsed.WAGGLE_SETTINGS_ENCRYPTION_KEY === undefined)
+    throw new Error("unrecognized_settings_key");
   const line = `WAGGLE_SETTINGS_ENCRYPTION_KEY=${randomBytes(32).toString("hex")}`;
   const content = existing.length
-    ? original.replace(/^WAGGLE_SETTINGS_ENCRYPTION_KEY=.*$/m, line)
+    ? original.replace(assignment, line)
     : `${original}${original.endsWith("\n") ? "" : "\n"}${line}\n`;
   await writeFile(file, content, { mode: 0o600 });
   await chmod(file, 0o600);
