@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import "./auth.css";
 
 export const metadata: Metadata = {
   title: { default: "와글 관리자", template: "%s · 와글" },

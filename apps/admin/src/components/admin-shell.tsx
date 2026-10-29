@@ -2,8 +2,15 @@ import { BookOpen, ChevronRight, MapPin, Radio, ShieldCheck, Sparkles, Wifi } fr
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminNav } from "./admin-nav";
+import { LogoutButton } from "./auth/logout-button";
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  operatorName,
+}: {
+  children: ReactNode;
+  operatorName: string;
+}) {
   return (
     <div className="admin-layout">
       <a className="skip-link" href="#content">
@@ -60,7 +67,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="sidebar-footer">
           <span className="operator-avatar">W</span>
           <span>
-            와글 개발 공간<small>운영자 인증 연결 전</small>
+            {operatorName}
+            <small>인증된 와글 운영자</small>
           </span>
         </div>
       </aside>
@@ -71,10 +79,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <ChevronRight size={13} aria-hidden="true" />
             관리자 워크스페이스
           </span>
-          <span className="environment-badge">
-            <ShieldCheck size={13} aria-hidden="true" />
-            개발 단계
-          </span>
+          <div className="topbar-account">
+            <span className="environment-badge">
+              <ShieldCheck size={13} aria-hidden="true" />
+              개발 단계
+            </span>
+            <LogoutButton />
+          </div>
         </header>
         <main id="content">{children}</main>
       </div>
