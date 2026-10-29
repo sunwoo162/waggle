@@ -12,6 +12,7 @@ import {
   Wifi,
 } from "lucide-react";
 import Link from "next/link";
+import { requireAdmin } from "@/server/auth/guard";
 
 const chapters = [
   {
@@ -40,7 +41,8 @@ const chapters = [
   },
 ];
 
-export default function AdminHome() {
+export default async function AdminHome() {
+  await requireAdmin();
   return (
     <div className="page-container">
       <div className="page-heading">
@@ -164,16 +166,16 @@ export default function AdminHome() {
             <li className="step-current">
               <span className="step-icon">2</span>
               <div>
-                <strong>개발 기반과 프로젝트 문서</strong>
-                <small>저장소·자동 검사·관리자 웹의 첫 화면</small>
+                <strong>운영자 인증과 프로젝트 문서</strong>
+                <small>DataGSM 로그인·서버 가드·기획 문서</small>
               </div>
               <span className="step-state">현재</span>
             </li>
             <li>
               <span className="step-icon">3</span>
               <div>
-                <strong>실제 인증과 네트워크 관리</strong>
-                <small>DataGSM 연동과 학교 설정 관리</small>
+                <strong>네트워크 관리와 기기 연결</strong>
+                <small>학교 설정 저장과 실제 연결 검증</small>
               </div>
               <span className="step-state">다음</span>
             </li>
@@ -196,7 +198,7 @@ export default function AdminHome() {
       <div className="development-notice">
         <ArrowDown size={14} aria-hidden="true" />
         <p>
-          현재는 개발 기반 단계예요. 운영자 인증, 실제 학교 네트워크 관리와 기기 연결은 후속
+          운영자 인증을 적용한 개발 환경이에요. 실제 학교 네트워크 관리와 기기 연결은 후속
           구현·실기기 검증이 필요해요.
         </p>
       </div>

@@ -7,8 +7,10 @@ body {
   margin: 0;
   background: var(--white);
   color: var(--ink);
-  font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-family: var(--font-pretendard), "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   word-break: keep-all;
 }
 a {

@@ -1,5 +1,6 @@
 import { ArrowUpRight, BookOpen } from "lucide-react";
 import type { Metadata } from "next";
+import { requireAdmin } from "@/server/auth/guard";
 
 export const metadata: Metadata = { title: "프로젝트 문서" };
 const sections = new Set([
@@ -24,6 +25,7 @@ export default async function DocumentsPage({
 }: {
   searchParams: Promise<{ section?: string | string[] }>;
 }) {
+  await requireAdmin();
   const params = await searchParams;
   const section =
     typeof params.section === "string" && sections.has(params.section) ? params.section : "home";

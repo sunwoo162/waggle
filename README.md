@@ -2,7 +2,7 @@
 
 학교 와이파이를 자동 관리하고, 실제로 연결한 와이파이를 캐릭터로 수집하는 교내 서비스입니다.
 
-**현재 단계** 개발 기반 구성 중 · 교내 실기기 검증 전  
+**현재 단계** 개발 기반·운영자 인증 코드 구현 · DataGSM 클라이언트 등록·교내 실기기 검증 전  
 **대상** Android Kotlin · Windows C# · 관리자 웹  
 **시각 기준** 사용자 제공 BASE 디자인 시스템
 
@@ -16,7 +16,9 @@ npm run setup
 npm run dev
 ```
 
-[관리자 웹](http://127.0.0.1:3000/admin)에서 프로젝트 문서를 읽을 수 있습니다. 현재는 개발 시작 화면과 문서 메뉴를 제공하며, 운영자 인증과 실제 학교 설정·기기 연결은 후속 구현 범위입니다.
+[운영자 로그인](http://localhost:3000/sign-in)에서 시작합니다. 관리자 웹·API는 사전 지정한 운영자 세션을 검사합니다. 현재 클라이언트 미등록으로 설정 대기 상태이며, 실제 학교 설정·기기 연결은 후속 구현 범위입니다. 공개 기획 문서는 /project-docs/handbook/index.html에서 읽을 수 있습니다.
+
+인증 설정은 [DataGSM 등록·실행 안내](docs/development/datagsm-auth.md)를 따릅니다. npm run auth:setup으로 로컬 키를 준비한 뒤 실제 client ID·운영자 ID 설정과 npm run auth:migrate가 필요합니다.
 
 ```sh
 npm run check       # 동작 테스트·저장소·문서·Biome·타입
@@ -24,13 +26,13 @@ npm run build       # 관리자 production build
 npm run docs:build  # 기획 문서 허브 재생성
 ```
 
-| 영역                | 위치                        | 현재                                   |
-| ------------------- | --------------------------- | -------------------------------------- |
-| 관리자 웹·공통 서버 | apps/admin                  | 관리자 기본 화면과 문서 메뉴, API 후속 |
-| Android             | apps/android                | Kotlin 구현·실기기 검증 예정           |
-| Windows             | apps/windows                | C# 구현·실기기 검증 예정               |
-| 기획·디자인         | docs                        | 제품·정책·BASE·화면 명세               |
-| 개발 하네스         | AGENTS.md, scripts, .github | 커밋 훅·검사·PR CI                     |
+| 영역                | 위치                        | 현재                                                       |
+| ------------------- | --------------------------- | ---------------------------------------------------------- |
+| 관리자 웹·공통 서버 | apps/admin                  | 운영자 OAuth·서버 가드·세션·문서 메뉴, 실제 연동 검증 대기 |
+| Android             | apps/android                | Kotlin 구현·실기기 검증 예정                               |
+| Windows             | apps/windows                | C# 구현·실기기 검증 예정                                   |
+| 기획·디자인         | docs                        | 제품·정책·BASE·화면 명세                                   |
+| 개발 하네스         | AGENTS.md, scripts, .github | 커밋 훅·검사·PR CI                                         |
 
 ## 협업 방식
 

@@ -9,7 +9,7 @@
 ### 기획
 
 - [프로젝트 소개](pages/01-overview.md) · 기획 검토안
-- [기능명세서](pages/02-features.md) · 구현 전
+- [기능명세서](pages/02-features.md) · 구현 진행
 - [서비스 정책](pages/03-policies.md) · 확정과 제안
 
 ### 설계
