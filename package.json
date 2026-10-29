@@ -17,7 +17,7 @@
     "check:repo": "node scripts/check-repo.mjs",
     "docs:build": "python docs/handbook/build_handbook.py",
     "docs:prepare": "node scripts/prepare-docs.mjs",
-    "docs:check": "node scripts/check-docs.mjs",
+    "docs:check": "npm run docs:prepare && node scripts/check-docs.mjs",
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "npm run typecheck --workspaces --if-present",

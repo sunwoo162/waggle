@@ -4,15 +4,16 @@
 
 ## 실행되는 장치
 
-| 장치      | 진입점                       | 실제 확인                                       |
-| --------- | ---------------------------- | ----------------------------------------------- |
-| 작업 안내 | AGENTS.md와 영역별 AGENTS.md | 제품 규칙·경계·명령·리뷰                        |
-| 커밋 전   | .githooks/pre-commit         | staged 비밀 파일·토큰·개인키                    |
-| 커밋 제목 | .githooks/commit-msg         | Conventional Commit 형식                        |
-| 로컬 품질 | npm run check                | 동작 테스트·저장소·문서·Biome·타입              |
-| 빌드      | npm run build                | 문서 자료 준비·관리자 production build          |
-| PR 품질   | GitHub Actions의 quality     | Linux에서 동일 명령 실행                        |
-| 문서 복사 | npm run docs:prepare         | 공개 가능한 문서 파일만 관리자 정적 자료로 복사 |
+| 장치           | 진입점                       | 실제 확인                                        |
+| -------------- | ---------------------------- | ------------------------------------------------ |
+| 작업 안내      | AGENTS.md와 영역별 AGENTS.md | 제품 규칙·경계·명령·리뷰                         |
+| 커밋 전        | .githooks/pre-commit         | staged 비밀 파일·토큰·개인키                     |
+| 커밋 제목      | .githooks/commit-msg         | Conventional Commit 형식                         |
+| 로컬 품질      | npm run check                | 동작 테스트·저장소·문서·Biome·타입               |
+| 빌드           | npm run build                | 문서 자료 준비·관리자 production build           |
+| PR 품질        | GitHub Actions의 quality     | Linux에서 동일 명령 실행                         |
+| 문서 복사      | npm run docs:prepare         | 공개 가능한 문서만 복사하고 폐기된 출력 정리     |
+| 공개 문서 링크 | npm run docs:check           | 원본 대신 실제 복사된 문서의 목차·파일 링크 검사 |
 
 훅은 `npm run setup`으로 명시적으로 설치한다. 훅 우회가 가능하므로 같은 검사를 CI에서도 실행한다. 임의의 학교 비밀번호를 정규식만으로 모두 발견할 수 있는 검사는 아니며, 공개 PR의 내용 검토도 필요하다.
 
