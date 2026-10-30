@@ -76,6 +76,53 @@ public sealed class SchoolConfigTests
         await sync.SyncAsync(default); Assert.IsNotNull(sync.Current);
         await session.LogoutAsync(default); Assert.IsNull(sync.Current);
     }
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task PendingStorageSerializesLogoutBeforeCredentialsCanBePublished(bool delaySave)
+    {
+        var api = new SessionTests.Api { Config = Config() };
+        var session = new MemberSession(new SessionTests.Store(), _ => api);
+        await session.LoginAsync("https://waggle.example", "synthetic-code", "검증", default);
+        var store = new DelayedStore(delaySave); var sync = new SchoolConfigSync(session, store);
+        var pending = sync.SyncAsync(default);
+        await store.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var logout = session.LogoutAsync(default);
+        try { Assert.IsFalse(logout.IsCompleted, "로그아웃은 진행 중인 설정 저장과 직렬화되어야 한다."); }
+        finally { store.Release.TrySetResult(); await pending; await logout; }
+        Assert.IsNull(sync.Current); Assert.IsNull(session.Current);
+    }
+    [TestMethod]
+    public async Task ConfigEndpointExpiryRotatesOnceWithoutLosingSession()
+    {
+        var store = new SessionTests.Store(); var api = new SessionTests.Api { RejectOldConfig = true };
+        var session = new MemberSession(store, _ => api);
+        await session.LoginAsync("https://waggle.example", "synthetic-code", "검증", default);
+        await session.DownloadSchoolConfigAsync(default);
+        Assert.AreEqual(1, api.Refreshes); Assert.AreEqual(2, api.ConfigRequests);
+        Assert.AreEqual(api.Next, store.Value!.Tokens); Assert.IsNotNull(session.Current);
+    }
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task PreflightAndConfigRetryHaveOneRefreshBudget(bool preflightExpires)
+    {
+        var store = new SessionTests.Store(); var api = new SessionTests.Api();
+        var session = new MemberSession(store, _ => api);
+        await session.LoginAsync("https://waggle.example", "synthetic-code", "검증", default);
+        api.RejectOld = preflightExpires; api.RejectAllConfigs = true;
+        Assert.AreEqual(Failure.Unauthorized, (await Assert.ThrowsAsync<MemberException>(() => session.DownloadSchoolConfigAsync(default))).Failure);
+        Assert.AreEqual(1, api.Refreshes); Assert.IsNull(store.Value); Assert.IsNull(session.Current);
+    }
+    private sealed class DelayedStore(bool delaySave) : ISchoolConfigStore
+    {
+        public TaskCompletionSource Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private async Task Delay(CancellationToken ct) { Started.TrySetResult(); await Release.Task.WaitAsync(ct); }
+        public async Task<CachedSchoolConfig?> LoadAsync(CancellationToken ct) { if (!delaySave) await Delay(ct); return null; }
+        public async Task SaveAsync(CachedSchoolConfig value, CancellationToken ct) { if (delaySave) await Delay(ct); }
+        public Task ClearAsync(CancellationToken ct) => Task.CompletedTask;
+    }
     internal sealed class Store : ISchoolConfigStore
     {
         public CachedSchoolConfig? Value; public bool FailSave;

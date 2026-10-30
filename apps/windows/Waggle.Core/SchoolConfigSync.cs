@@ -14,20 +14,22 @@ public sealed class SchoolConfigSync(MemberSession session, ISchoolConfigStore s
         await gate.WaitAsync(ct);
         try
         {
-            var incoming = await session.DownloadSchoolConfigAsync(ct);
-            incoming.Validate();
-            CachedSchoolConfig? previous;
-            try { previous = await store.LoadAsync(ct); }
-            catch (Exception ex) when (ex is not OperationCanceledException) { throw new MemberException(Failure.Storage); }
-            if (previous?.Origin == incoming.Origin && previous.MemberId == incoming.MemberId)
+            return await session.WithSchoolConfigAsync(async (incoming, token) =>
             {
-                if (incoming.Config.Version < previous.Config.Version || incoming.Config.Version == previous.Config.Version && !incoming.Config.EquivalentTo(previous.Config))
-                    throw new MemberException(Failure.InvalidResponse);
-                if (incoming.Config.EquivalentTo(previous.Config)) return Current = previous;
-            }
-            try { await store.SaveAsync(incoming, ct); }
-            catch (Exception ex) when (ex is not OperationCanceledException) { throw new MemberException(Failure.Storage); }
-            return Current = incoming;
+                incoming.Validate();
+                CachedSchoolConfig? previous;
+                try { previous = await store.LoadAsync(token); }
+                catch (Exception ex) when (ex is not OperationCanceledException) { throw new MemberException(Failure.Storage); }
+                if (previous?.Origin == incoming.Origin && previous.MemberId == incoming.MemberId)
+                {
+                    if (incoming.Config.Version < previous.Config.Version || incoming.Config.Version == previous.Config.Version && !incoming.Config.EquivalentTo(previous.Config))
+                        throw new MemberException(Failure.InvalidResponse);
+                    if (incoming.Config.EquivalentTo(previous.Config)) return Current = previous;
+                }
+                try { await store.SaveAsync(incoming, token); }
+                catch (Exception ex) when (ex is not OperationCanceledException) { throw new MemberException(Failure.Storage); }
+                return Current = incoming;
+            }, ct);
         }
         catch (MemberException ex) when (ex.Failure == Failure.Unauthorized) { Current = null; throw; }
         finally { gate.Release(); }

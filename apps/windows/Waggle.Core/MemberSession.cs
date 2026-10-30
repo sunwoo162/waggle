@@ -45,20 +45,36 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
         try { return await CheckCoreAsync(ct); }
         finally { gate.Release(); }
     }
-    public async Task<CachedSchoolConfig> DownloadSchoolConfigAsync(CancellationToken ct)
+    public Task<CachedSchoolConfig> DownloadSchoolConfigAsync(CancellationToken ct) =>
+        WithSchoolConfigAsync((value, _) => Task.FromResult(value), ct);
+    internal async Task<T> WithSchoolConfigAsync<T>(Func<CachedSchoolConfig, CancellationToken, Task<T>> accept, CancellationToken ct)
     {
         await gate.WaitAsync(ct);
         try
         {
-            var identity = await CheckCoreAsync(ct);
+            var refreshed = false;
+            var identity = await CheckCoreAsync(ct, onRefresh: () => refreshed = true);
             if (saved is null || lastOrigin is null) throw new MemberException(Failure.Unauthorized);
             using var api = createApi(ServiceOrigin.Parse(lastOrigin));
-            try { return new(lastOrigin, identity.Member.Id, await api.GetSchoolConfigAsync(saved.Tokens.AccessToken, ct)); }
+            try
+            {
+                SchoolConfig config;
+                try { config = await api.GetSchoolConfigAsync(saved.Tokens.AccessToken, ct); }
+                catch (MemberException ex) when (ex.Failure == Failure.Unauthorized && !refreshed)
+                {
+                    var next = await api.RefreshAsync(saved.Tokens.RefreshToken, ct);
+                    await SaveAsync(saved with { Tokens = next }, api);
+                    identity = await CheckCoreAsync(ct, allowRefresh: false);
+                    config = await api.GetSchoolConfigAsync(next.AccessToken, ct);
+                }
+                // Cache persistence and publication share the authentication lock with logout.
+                return await accept(new(lastOrigin, identity.Member.Id, config), ct);
+            }
             catch (MemberException ex) when (ex.Failure == Failure.Unauthorized) { await ForgetAsync(); throw; }
         }
         finally { gate.Release(); }
     }
-    private async Task<Identity> CheckCoreAsync(CancellationToken ct)
+    private async Task<Identity> CheckCoreAsync(CancellationToken ct, bool allowRefresh = true, Action? onRefresh = null)
     {
         Current = null;
         if (NeedsCleanup) throw new MemberException(Failure.Storage);
@@ -71,8 +87,9 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
             if (saved.Tokens.RefreshExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) throw new MemberException(Failure.Unauthorized);
             using var api = createApi(uri);
             try { Current = await api.MeAsync(saved.Tokens.AccessToken, ct); }
-            catch (MemberException ex) when (ex.Failure == Failure.Unauthorized)
+            catch (MemberException ex) when (ex.Failure == Failure.Unauthorized && allowRefresh)
             {
+                onRefresh?.Invoke();
                 var next = await api.RefreshAsync(saved.Tokens.RefreshToken, ct);
                 await SaveAsync(saved with { Tokens = next }, api);
                 Current = await api.MeAsync(next.AccessToken, ct);
