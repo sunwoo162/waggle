@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type { Collection } from "../../shared/encyclopedia";
 import type { InviteMember, IssuedInvite, MemberSnapshot, TokenPair } from "../../shared/members";
 import { denied, MemberError, memberInvalid } from "./errors";
 import { assertMemberSchema, type MemberAuth, type MemberSettings } from "./factory";
@@ -394,5 +395,44 @@ export class MemberService {
     const identity = await this.access(token);
     this.limit(`config:${identity.device.id}`, 12, 300_000);
     return identity;
+  }
+  async collectionAccess(token: unknown) {
+    const identity = await this.access(token);
+    this.limit(`collection:${identity.device.id}`, 60, 300_000);
+    return identity;
+  }
+  mergeCollection(
+    identity: Awaited<ReturnType<MemberService["access"]>>,
+    apIds: string[] = [],
+  ): Collection {
+    if (
+      apIds.length > 100 ||
+      apIds.some(
+        (id) =>
+          typeof id !== "string" ||
+          id.length !== 36 ||
+          !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(id),
+      )
+    )
+      return memberInvalid();
+    return this.db
+      .transaction(() => {
+        const current = this.live(identity.sessionId);
+        if (current.member.id !== identity.member.id) return denied();
+        const insert = this.db.prepare("INSERT OR IGNORE INTO native_collection VALUES (?,?)");
+        for (const apId of new Set(apIds)) insert.run(current.member.id, apId);
+        const rows = this.db
+          .prepare(
+            "SELECT ap_id FROM native_collection WHERE member_id=? ORDER BY ap_id LIMIT 10001",
+          )
+          .all(current.member.id) as { ap_id: string }[];
+        if (rows.length > 10000)
+          throw new MemberError(
+            "conflict",
+            "도감 수집 한도에 도달했습니다. 운영자에게 문의해주세요.",
+          );
+        return { schemaVersion: 1 as const, apIds: rows.map((row) => row.ap_id) };
+      })
+      .immediate();
   }
 }

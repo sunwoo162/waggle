@@ -3,12 +3,13 @@ import type Database from "better-sqlite3";
 import type { ClientSchoolConfig } from "../../shared/client-config";
 import type { AccessPoint, Network, SchoolSnapshot, Security } from "../../shared/school";
 import { securityOptions } from "../../shared/school";
+import { CharacterStore, migrateCharacters } from "./characters";
 import { CredentialCipher } from "./crypto";
 import { invalid, SchoolError, unavailable } from "./errors";
 
 const keyMarker = "waggle-school-storage-v1";
-function verify(database: Database.Database, cipher: CredentialCipher) {
-  if (database.pragma("user_version", { simple: true }) !== 1) unavailable();
+function verify(database: Database.Database, cipher: CredentialCipher, expected = 2) {
+  if (database.pragma("user_version", { simple: true }) !== expected) unavailable();
   const row = database.prepare("SELECT key_check FROM school_meta WHERE id=1").get() as
     | { key_check: string }
     | undefined;
@@ -20,8 +21,13 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
   database
     .transaction(() => {
       const version = database.pragma("user_version", { simple: true });
-      if (version === 1) {
+      if (version === 2) {
         verify(database, cipher);
+        return;
+      }
+      if (version === 1) {
+        verify(database, cipher, 1);
+        migrateCharacters(database);
         return;
       }
       if (
@@ -51,6 +57,7 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
       database
         .prepare("INSERT INTO school_meta VALUES (1,0,?)")
         .run(cipher.seal(keyMarker, "key-check"));
+      migrateCharacters(database);
     })
     .immediate();
 }
@@ -101,12 +108,14 @@ function checkRevision(old: { revision: number } | undefined, expected: number) 
 
 export class SchoolStore {
   private readonly cipher: CredentialCipher;
+  readonly characters: CharacterStore;
   constructor(
     private readonly database: Database.Database,
     key: Buffer,
   ) {
     this.cipher = new CredentialCipher(key);
     verify(database, this.cipher);
+    this.characters = new CharacterStore(database);
   }
   snapshot(): SchoolSnapshot {
     return this.database.transaction(() => {
