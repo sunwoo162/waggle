@@ -4,7 +4,7 @@ export function jsonPrivate(body: unknown, status = 200, extra: Record<string, s
     headers: { "cache-control": "private, no-store", ...extra },
   });
 }
-export async function readJson(request: Request) {
+export async function readJson(request: Request, limit = 16 * 1024) {
   if (!/^application\/json(?:;|$)/i.test(request.headers.get("content-type") || ""))
     return { error: 415 } as const;
   const reader = request.body?.getReader();
@@ -16,7 +16,7 @@ export async function readJson(request: Request) {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > 16 * 1024) {
+      if (size > limit) {
         await reader.cancel();
         return { error: 413 } as const;
       }

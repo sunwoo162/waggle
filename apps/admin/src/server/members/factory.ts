@@ -103,12 +103,20 @@ export type MemberAuth = ReturnType<typeof createMemberAuth>;
 export function keyFingerprint(settings: MemberSettings) {
   return createHmac("sha256", settings.secret).update("waggle-members-schema-v1").digest("hex");
 }
-export function assertMemberSchema(database: Database.Database, settings: MemberSettings) {
+export function assertMemberSchema(
+  database: Database.Database,
+  settings: MemberSettings,
+  expected = 2,
+) {
   try {
     const meta = database
       .prepare("SELECT schema_version,key_check FROM native_meta WHERE id=1")
       .get() as { schema_version: number; key_check: string } | undefined;
-    if (meta?.schema_version !== 1 || meta.key_check !== keyFingerprint(settings))
+    if (
+      ![1, 2].includes(expected) ||
+      meta?.schema_version !== expected ||
+      meta.key_check !== keyFingerprint(settings)
+    )
       memberUnavailable();
     for (const table of [
       "user",
@@ -117,6 +125,7 @@ export function assertMemberSchema(database: Database.Database, settings: Member
       "native_member",
       "native_device",
       "native_limit",
+      ...(expected === 2 ? ["native_collection"] : []),
     ])
       if (
         !database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table)
@@ -135,8 +144,12 @@ export async function migrateMembers(
     database
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='native_meta'")
       .get()
-  )
-    assertMemberSchema(database, settings);
+  ) {
+    const row = database.prepare("SELECT schema_version FROM native_meta WHERE id=1").get() as
+      | { schema_version: number }
+      | undefined;
+    assertMemberSchema(database, settings, row?.schema_version);
+  }
   const migration = await getMigrations(auth.options);
   if (migration.unsafeChanges.length || migration.schemaProblems.length) memberUnavailable();
   await migration.runMigrations();
@@ -157,10 +170,17 @@ export async function migrateMembers(
       );
       CREATE INDEX IF NOT EXISTS native_device_member ON native_device(member_id);
       CREATE TABLE IF NOT EXISTS native_limit (bucket TEXT PRIMARY KEY,starts_at INTEGER NOT NULL,count INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS native_collection (
+        member_id TEXT NOT NULL REFERENCES native_member(id),ap_id TEXT NOT NULL,
+        PRIMARY KEY(member_id,ap_id)
+      );
     `);
       database
-        .prepare("INSERT OR IGNORE INTO native_meta VALUES (1,1,?)")
+        .prepare("INSERT OR IGNORE INTO native_meta VALUES (1,2,?)")
         .run(keyFingerprint(settings));
+      database
+        .prepare("UPDATE native_meta SET schema_version=2 WHERE id=1 AND schema_version=1")
+        .run();
       assertMemberSchema(database, settings);
     })
     .immediate();
