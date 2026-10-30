@@ -46,5 +46,7 @@ public interface IMemberApi : IDisposable
     Task<TokenPair> RefreshAsync(string token, CancellationToken ct);
     Task<Identity> MeAsync(string token, CancellationToken ct);
     Task<SchoolConfig> GetSchoolConfigAsync(string token, CancellationToken ct);
+    Task<Encyclopedia> GetEncyclopediaAsync(string token, CancellationToken ct);
+    Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct);
     Task LogoutAsync(string token, CancellationToken ct);
 }
