@@ -80,6 +80,19 @@ public sealed class CollectionSync(MemberSession session, IClientStateStore stor
         }
         finally { gate.Release(); }
     }
+    public async Task ClearHistoryAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            await session.WithCurrentAsync(async (identity, origin, cancellation) =>
+            {
+                var previous = await LoadAsync(identity, origin, cancellation);
+                return await SaveAsync(previous with { History = [] }, cancellation);
+            }, ct);
+        }
+        finally { gate.Release(); }
+    }
     public async Task ClearAsync(CancellationToken ct)
     {
         await gate.WaitAsync(ct);

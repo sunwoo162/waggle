@@ -1,7 +1,7 @@
 # 와글 프로젝트 기획 총괄표
 
 작성일: 2026-10-29  
-상태: 운영자·학교 네트워크/AP·개인 코드 관리와 Windows 개인 코드 인증 앱 구현. DataGSM 미등록으로 실제 계정 연동·교내 Wi-Fi는 검증 전이다. Windows 자동 관리·Android 앱·학교 이메일 인증은 후속이다.  
+상태: 운영자·학교 네트워크/AP·개인 코드·캐릭터 관리와 Windows 인증·자동 관리·그림 도감 구현. DataGSM 미등록으로 실제 계정 연동·교내 Wi-Fi는 검증 전이다. Android 앱·학교 이메일 인증은 후속이다.  
 상세 요구: [제품 기획서](../superpowers/specs/2026-10-29-campus-wifi-design.md)  
 디자인 기준: [BASE 적용안](../design/design-system.md)
 
