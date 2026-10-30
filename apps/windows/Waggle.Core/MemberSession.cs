@@ -1,7 +1,8 @@
 namespace Waggle.Core;
 
-public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> createApi)
+public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> createApi, TimeProvider? timeProvider = null)
 {
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
     private readonly SemaphoreSlim gate = new(1, 1);
     private StoredSession? saved;
     private string? lastOrigin;
@@ -82,7 +83,7 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
         {
             if (NeedsCleanup) throw new MemberException(Failure.Storage);
             if (Current is not { } identity || lastOrigin is null || saved is null) throw new MemberException(Failure.Unauthorized);
-            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var now = clock.GetUtcNow().ToUnixTimeMilliseconds();
             if (identity.Device.ExpiresAt <= now || saved.Tokens.RefreshExpiresAt <= now) { await ForgetAsync(); throw new MemberException(Failure.Unauthorized); }
             return await accept(identity, lastOrigin, ct);
         }
@@ -98,7 +99,7 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
             var uri = ServiceOrigin.Parse(saved.Origin);
             lastOrigin = uri.AbsoluteUri;
             saved.Tokens.Validate();
-            if (saved.Tokens.RefreshExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) throw new MemberException(Failure.Unauthorized);
+            if (saved.Tokens.RefreshExpiresAt <= clock.GetUtcNow().ToUnixTimeMilliseconds()) throw new MemberException(Failure.Unauthorized);
             using var api = createApi(uri);
             try { Current = await api.MeAsync(saved.Tokens.AccessToken, ct); }
             catch (MemberException ex) when (ex.Failure == Failure.Unauthorized && allowRefresh)
