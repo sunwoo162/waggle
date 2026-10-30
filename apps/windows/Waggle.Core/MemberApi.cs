@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace Waggle.Core;
@@ -32,7 +33,12 @@ public sealed class MemberApi : IMemberApi
         identity.Validate(); return identity;
     }
     public async Task LogoutAsync(string token, CancellationToken ct) => await SendAsync<object>("logout", new { refreshToken = token }, null, ct);
-    private async Task<T> SendAsync<T>(string path, object? body, string? bearer, CancellationToken ct)
+    public async Task<SchoolConfig> GetSchoolConfigAsync(string token, CancellationToken ct)
+    {
+        var config = await SendAsync<SchoolConfig>("config", null, token, ct, 1024 * 1024);
+        config.Validate(); return config;
+    }
+    private async Task<T> SendAsync<T>(string path, object? body, string? bearer, CancellationToken ct, int maximumBytes = 65_536)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
         budget.CancelAfter(TimeSpan.FromSeconds(15));
@@ -56,17 +62,21 @@ public sealed class MemberApi : IMemberApi
                 if (response.StatusCode != HttpStatusCode.NoContent) throw new MemberException(Failure.InvalidResponse);
                 return default!;
             }
-            if (response.Content.Headers.ContentType?.MediaType != "application/json" || response.Content.Headers.ContentLength > 65_536)
+            if (response.Content.Headers.ContentType?.MediaType != "application/json" || response.Content.Headers.ContentLength > maximumBytes)
                 throw new MemberException(Failure.InvalidResponse);
             await using var stream = await response.Content.ReadAsStreamAsync(budget.Token);
             using var bytes = new MemoryStream();
             var buffer = new byte[4096]; int read;
-            while ((read = await stream.ReadAsync(buffer, budget.Token)) != 0)
+            try
             {
-                if (bytes.Length + read > 65_536) throw new MemberException(Failure.InvalidResponse);
-                bytes.Write(buffer, 0, read);
+                while ((read = await stream.ReadAsync(buffer, budget.Token)) != 0)
+                {
+                    if (bytes.Length + read > maximumBytes) throw new MemberException(Failure.InvalidResponse);
+                    bytes.Write(buffer, 0, read);
+                }
+                return JsonSerializer.Deserialize<T>(bytes.GetBuffer().AsSpan(0, (int)bytes.Length), Json) ?? throw new MemberException(Failure.InvalidResponse);
             }
-            return JsonSerializer.Deserialize<T>(bytes.GetBuffer().AsSpan(0, (int)bytes.Length), Json) ?? throw new MemberException(Failure.InvalidResponse);
+            finally { CryptographicOperations.ZeroMemory(bytes.GetBuffer()); CryptographicOperations.ZeroMemory(buffer); }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new MemberException(Failure.Offline); }
         catch (HttpRequestException) { throw new MemberException(Failure.Offline); }

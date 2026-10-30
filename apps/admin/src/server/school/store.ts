@@ -161,7 +161,7 @@ export class SchoolStore {
         .all() as ClientSchoolConfig["accessPoints"];
       if (networks.length > 500 || accessPoints.length > 5000) return unavailable();
       return {
-        schemaVersion: 1,
+        schemaVersion: 1 as const,
         version: meta.version,
         networks: networks.map(({ id, ssid, security, credential }) => {
           let password: string | null = null;

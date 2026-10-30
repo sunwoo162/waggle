@@ -17,6 +17,12 @@ public sealed class ProtocolTests
         foreach (var s in new[] { "http://school.example", "http://127.1", "http://localhost.evil.test", "https://a.test/path", "https://u:p@a.test", "https://a.test?token=x", "https://a.test#x", "file:///C:/a" }) Assert.Throws<MemberException>(() => ServiceOrigin.Parse(s));
     }
     [TestMethod]
+    public void TokensRejectTrailingLineBreaks()
+    {
+        Assert.Throws<MemberException>(() => (Pair with { RefreshToken = Pair.RefreshToken + "\n" }).Validate());
+        Assert.Throws<MemberException>(() => (Pair with { AccessToken = Pair.AccessToken + "\n" }).Validate());
+    }
+    [TestMethod]
     public async Task SendsWindowsFieldsAndExplicitAccessBearer()
     {
         var requests = new List<(string Path, string Body, string? Auth)>();

@@ -45,6 +45,19 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
         try { return await CheckCoreAsync(ct); }
         finally { gate.Release(); }
     }
+    public async Task<CachedSchoolConfig> DownloadSchoolConfigAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            var identity = await CheckCoreAsync(ct);
+            if (saved is null || lastOrigin is null) throw new MemberException(Failure.Unauthorized);
+            using var api = createApi(ServiceOrigin.Parse(lastOrigin));
+            try { return new(lastOrigin, identity.Member.Id, await api.GetSchoolConfigAsync(saved.Tokens.AccessToken, ct)); }
+            catch (MemberException ex) when (ex.Failure == Failure.Unauthorized) { await ForgetAsync(); throw; }
+        }
+        finally { gate.Release(); }
+    }
     private async Task<Identity> CheckCoreAsync(CancellationToken ct)
     {
         Current = null;

@@ -12,8 +12,8 @@ public sealed record TokenPair(string AccessToken, string RefreshToken, string T
     public override string ToString() => "TokenPair [redacted]";
     public void Validate()
     {
-        if (AccessToken is null || AccessToken.Length > 8192 || !Regex.IsMatch(AccessToken, @"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$") ||
-            RefreshToken is null || !Regex.IsMatch(RefreshToken, @"^[A-Za-z0-9_-]{32}$") || TokenType != "Bearer" || AccessExpiresIn != 900 ||
+        if (AccessToken is null || AccessToken.Length > 8192 || !Regex.IsMatch(AccessToken, @"\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\z") ||
+            RefreshToken is null || !Regex.IsMatch(RefreshToken, @"\A[A-Za-z0-9_-]{32}\z") || TokenType != "Bearer" || AccessExpiresIn != 900 ||
             RefreshExpiresAt <= 0 || RefreshExpiresAt > DateTimeOffset.MaxValue.ToUnixTimeMilliseconds())
             throw new MemberException(Failure.InvalidResponse);
     }
@@ -45,5 +45,6 @@ public interface IMemberApi : IDisposable
     Task<TokenPair> LoginAsync(string code, string deviceName, CancellationToken ct);
     Task<TokenPair> RefreshAsync(string token, CancellationToken ct);
     Task<Identity> MeAsync(string token, CancellationToken ct);
+    Task<SchoolConfig> GetSchoolConfigAsync(string token, CancellationToken ct);
     Task LogoutAsync(string token, CancellationToken ct);
 }
