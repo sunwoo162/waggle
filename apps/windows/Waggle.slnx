@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Waggle.Core/Waggle.Core.csproj" />
+  <Project Path="Waggle.Security.Windows/Waggle.Security.Windows.csproj" />
+  <Project Path="Waggle.Tests/Waggle.Tests.csproj" />
+  <Project Path="Waggle.Windows/Waggle.Windows.csproj" />
+</Solution>

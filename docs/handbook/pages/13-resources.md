@@ -14,6 +14,7 @@
 - [운영자 인증 등록·실행 안내](../../development/datagsm-auth.md)
 - [학교 네트워크·AP 저장소 안내](../../development/school-settings.md)
 - [개인 코드 발급·기기 세션 안내](../../development/personal-invites.md)
+- [Windows 계정 앱 실행·검증 안내](../../development/windows-client.md)
 
 ## 구성 참고
 

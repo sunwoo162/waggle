@@ -30,6 +30,9 @@ test("DB·키 저장소·생성 출력이 커밋에 섞이지 않는다", () => 
     "release/signing.jks",
     "a/.env",
     "node_modules/pkg/index.js",
+    ".tools/dotnet/dotnet.exe",
+    "apps/windows/Waggle.Windows/bin/Release/Waggle.exe",
+    "apps/windows/Waggle.Windows/obj/project.assets.json",
   ]) {
     assert.equal(findRepositoryProblems([{ path, content: "" }]).length, 1, path);
   }

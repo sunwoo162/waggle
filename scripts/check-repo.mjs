@@ -11,7 +11,8 @@ export function findRepositoryProblems(files) {
       /(^|\/)\.env(?:\..+)?$/.test(name) &&
       !name.endsWith("/.env.example") &&
       name !== ".env.example";
-    const generated = /(^|\/)(node_modules|\.next|__pycache__|\.superpowers|_qa)\//.test(name);
+    const generated =
+      /(^|\/)(node_modules|\.next|__pycache__|\.superpowers|\.tools|bin|obj|_qa)\//.test(name);
     if (sensitive || generated || /\.(?:db|sqlite|sqlite3|jks|keystore|p12|pfx|pem)$/i.test(name)) {
       problems.push(`${name}: 비밀 파일 또는 생성 출력은 커밋할 수 없습니다.`);
       continue;
@@ -36,7 +37,7 @@ function main() {
     ...new Set(execFileSync("git", args, { encoding: "utf8" }).split("\0").filter(Boolean)),
   ];
   const files = names.map((name) => {
-    const binary = /\.(?:png|jpe?g|webp|gif|ico|woff2?|ttf)$/i.test(name);
+    const binary = /\.(?:png|jpe?g|webp|gif|ico|woff2?|ttf|otf)$/i.test(name);
     let content = "";
     if (!binary) {
       if (staged)

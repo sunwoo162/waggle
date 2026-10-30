@@ -19,6 +19,7 @@
 - `npm run check`: 테스트, 비밀 파일 검사, 문서 링크, Biome, TypeScript.
 - `npm run build`: 문서 자료 준비와 production build.
 - `npm run docs:build`: Python 3.11+와 Node 22로 문서 허브 재생성.
+- `npm run windows:check`, `npm run windows:run`: Windows의 .NET 10 앱 검사와 실행. 웹 검사와 별도로 CI windows-quality를 유지한다.
 
 ## 작업과 검토
 
@@ -34,6 +35,7 @@
 
 - 광주소프트웨어마이스터고등학교(GSM) 전용이다. 학교 선택·추가·여러 학교 운영을 기능이나 확장 계획으로 넣지 않는다.
 - 도감 해금은 OS가 확인한 실제 연결 성공이다. 스캔·연결 요청·실패만으로 해금하지 않는다.
+- Android·Windows의 도감은 캐릭터 이미지와 재미있는 이름·수집 상태 중심이다. 지도·도면·AP 설치 위치 조회·편집은 관리자 웹에만 둔다. 사용자 앱 도감에 위치 탐색 기능을 넣지 않는다.
 - Android는 OS가 허용하는 네트워크 제안과 실행 범위를 따른다. 임의의 강제 전환이나 무중단 연결을 약속하지 않는다.
 - 설치 위치 지도와 학생의 현재 위치를 구분한다. 학생 이동 경로를 중앙 수집하지 않는다.
 - DataGSM ADMIN 값은 와글 관리자 권한이 아니다. 사전 지정 운영자만 허용한다.
