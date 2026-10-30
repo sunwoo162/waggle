@@ -6,7 +6,7 @@ public sealed class SchoolConfigSync(MemberSession session, ISchoolConfigStore s
     private CachedSchoolConfig? current;
     public CachedSchoolConfig? Current
     {
-        get => current is { } value && !session.NeedsCleanup && session.Current?.Member.Id == value.MemberId && session.Origin == value.Origin ? value : null;
+        get => current is { } value && !session.NeedsCleanup && session.Current is { } identity && identity.Member.Id == value.MemberId && identity.Device.ExpiresAt > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() && session.Origin == value.Origin ? value : null;
         private set => current = value;
     }
     public async Task<CachedSchoolConfig> SyncAsync(CancellationToken ct)

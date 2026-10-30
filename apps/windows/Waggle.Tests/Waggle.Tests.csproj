@@ -5,6 +5,7 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,12 @@
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    <None Update="Fixtures/*.webp" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Waggle.Windows/CharacterCard.cs" Link="CharacterCard.cs" />
     <ProjectReference Include="../Waggle.Core/Waggle.Core.csproj" />
+    <ProjectReference Include="../Waggle.Platform.Windows/Waggle.Platform.Windows.csproj" />
     <ProjectReference Include="../Waggle.Security.Windows/Waggle.Security.Windows.csproj" />
   </ItemGroup>
 

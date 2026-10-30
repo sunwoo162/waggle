@@ -1,7 +1,8 @@
 namespace Waggle.Core;
 
-public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> createApi)
+public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> createApi, TimeProvider? timeProvider = null)
 {
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
     private readonly SemaphoreSlim gate = new(1, 1);
     private StoredSession? saved;
     private string? lastOrigin;
@@ -47,7 +48,10 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
     }
     public Task<CachedSchoolConfig> DownloadSchoolConfigAsync(CancellationToken ct) =>
         WithSchoolConfigAsync((value, _) => Task.FromResult(value), ct);
-    internal async Task<T> WithSchoolConfigAsync<T>(Func<CachedSchoolConfig, CancellationToken, Task<T>> accept, CancellationToken ct)
+    internal Task<T> WithSchoolConfigAsync<T>(Func<CachedSchoolConfig, CancellationToken, Task<T>> accept, CancellationToken ct) =>
+        WithAccessAsync(async (identity, origin, api, token, cancellation) => await accept(new(origin, identity.Member.Id, await api.GetSchoolConfigAsync(token, cancellation)), cancellation), ct);
+    // Only idempotent operations belong here: a 401 may retry the entire callback once.
+    internal async Task<T> WithAccessAsync<T>(Func<Identity, string, IMemberApi, string, CancellationToken, Task<T>> accept, CancellationToken ct)
     {
         await gate.WaitAsync(ct);
         try
@@ -55,22 +59,33 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
             var refreshed = false;
             var identity = await CheckCoreAsync(ct, onRefresh: () => refreshed = true);
             if (saved is null || lastOrigin is null) throw new MemberException(Failure.Unauthorized);
-            using var api = createApi(ServiceOrigin.Parse(lastOrigin));
+            var origin = lastOrigin;
+            using var api = createApi(ServiceOrigin.Parse(origin));
             try
             {
-                SchoolConfig config;
-                try { config = await api.GetSchoolConfigAsync(saved.Tokens.AccessToken, ct); }
+                try { return await accept(identity, origin, api, saved.Tokens.AccessToken, ct); }
                 catch (MemberException ex) when (ex.Failure == Failure.Unauthorized && !refreshed)
                 {
                     var next = await api.RefreshAsync(saved.Tokens.RefreshToken, ct);
                     await SaveAsync(saved with { Tokens = next }, api);
                     identity = await CheckCoreAsync(ct, allowRefresh: false);
-                    config = await api.GetSchoolConfigAsync(next.AccessToken, ct);
+                    return await accept(identity, origin, api, next.AccessToken, ct);
                 }
-                // Cache persistence and publication share the authentication lock with logout.
-                return await accept(new(lastOrigin, identity.Member.Id, config), ct);
             }
             catch (MemberException ex) when (ex.Failure == Failure.Unauthorized) { await ForgetAsync(); throw; }
+        }
+        finally { gate.Release(); }
+    }
+    internal async Task<T> WithCurrentAsync<T>(Func<Identity, string, CancellationToken, Task<T>> accept, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (NeedsCleanup) throw new MemberException(Failure.Storage);
+            if (Current is not { } identity || lastOrigin is null || saved is null) throw new MemberException(Failure.Unauthorized);
+            var now = clock.GetUtcNow().ToUnixTimeMilliseconds();
+            if (identity.Device.ExpiresAt <= now || saved.Tokens.RefreshExpiresAt <= now) { await ForgetAsync(); throw new MemberException(Failure.Unauthorized); }
+            return await accept(identity, lastOrigin, ct);
         }
         finally { gate.Release(); }
     }
@@ -84,7 +99,7 @@ public sealed class MemberSession(ISessionStore store, Func<Uri, IMemberApi> cre
             var uri = ServiceOrigin.Parse(saved.Origin);
             lastOrigin = uri.AbsoluteUri;
             saved.Tokens.Validate();
-            if (saved.Tokens.RefreshExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) throw new MemberException(Failure.Unauthorized);
+            if (saved.Tokens.RefreshExpiresAt <= clock.GetUtcNow().ToUnixTimeMilliseconds()) throw new MemberException(Failure.Unauthorized);
             using var api = createApi(uri);
             try { Current = await api.MeAsync(saved.Tokens.AccessToken, ct); }
             catch (MemberException ex) when (ex.Failure == Failure.Unauthorized && allowRefresh)
