@@ -26,6 +26,8 @@ npm run dev
 
 개인 코드·기기 세션은 [발급·인증 안내](docs/development/personal-invites.md)에 따라 npm run members:migrate로 준비합니다. 코드 원문은 발급 직후 한 번만 확인할 수 있습니다. Windows 개인 코드 앱은 구현했으며 학교 이메일 인증·DataGSM 네이티브 복귀는 후속 작업입니다.
 
+[앱용 학교 설정 배포](docs/development/client-school-config.md)는 인증된 활성 접속정보만 전달하며 Windows 검증·계정별 보호 캐시 코어를 구현했습니다. 앱 화면·OS 프로필 설치·자동 연결은 후속입니다.
+
 ```sh
 npm run check       # 동작 테스트·저장소·문서·Biome·타입
 npm run build       # 관리자 production build
@@ -58,7 +60,7 @@ npm run docs:build  # 기획 문서 허브 재생성
 
 ## 기록 기준
 
-확정 요구, 기획 제안, 현장 검증 대기, 구현 전 상태를 구분합니다. 같은 계정의 기기 간 도감 공유는 아직 제안이며 실제 연결 성공에 따른 해금은 확정 요구입니다. 가격·출시일·실제 학교 도면은 정해지지 않은 값을 만들어 넣지 않습니다.
+확정 요구, 기획 제안, 현장 검증 대기, 구현 전 상태를 구분합니다. 등록 AP마다 캐릭터 하나를 두며 실제 연결 성공으로 해금하고 같은 내부 계정의 기기끼리 수집 상태를 공유합니다. 가격·출시일·실제 학교 도면은 정해지지 않은 값을 만들어 넣지 않습니다.
 
 원문과 공식 기술 자료는 [참고 자료](docs/handbook/pages/13-resources.md)에서 확인할 수 있습니다.
 

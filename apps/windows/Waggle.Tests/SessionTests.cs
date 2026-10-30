@@ -95,12 +95,14 @@ public sealed class SessionTests
     }
     internal sealed class Api : IMemberApi
     {
+        public SchoolConfig Config = new(1, 0, [], []);
         public Identity Identity = ProtocolTests.Identity; public TokenPair Next = ProtocolTests.Pair with { AccessToken = "fresh.payload.signature", RefreshToken = new string('n', 32) };
-        public bool Offline, Revoked, RejectOld; public int Refreshes, Logins; public List<string> LoggedOut = [];
+        public bool Offline, Revoked, RejectOld, RejectOldConfig, RejectAllConfigs; public int Refreshes, Logins, ConfigRequests; public List<string> LoggedOut = [];
         void Guard() { if (Offline) throw new MemberException(Failure.Offline); if (Revoked) throw new MemberException(Failure.Unauthorized); }
         public Task<TokenPair> LoginAsync(string code, string name, CancellationToken ct) { Guard(); Logins++; return Task.FromResult(ProtocolTests.Pair); }
         public async Task<TokenPair> RefreshAsync(string token, CancellationToken ct) { Guard(); await Task.Yield(); Refreshes++; return Next; }
         public Task<Identity> MeAsync(string token, CancellationToken ct) { Guard(); if (RejectOld && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Identity); }
+        public Task<SchoolConfig> GetSchoolConfigAsync(string token, CancellationToken ct) { Guard(); ConfigRequests++; if (RejectAllConfigs || RejectOldConfig && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Config); }
         public Task LogoutAsync(string token, CancellationToken ct) { Guard(); LoggedOut.Add(token); return Task.CompletedTask; }
         public void Dispose() { }
     }

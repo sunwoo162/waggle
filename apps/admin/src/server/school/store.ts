@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type { ClientSchoolConfig } from "../../shared/client-config";
 import type { AccessPoint, Network, SchoolSnapshot, Security } from "../../shared/school";
 import { securityOptions } from "../../shared/school";
 import { CredentialCipher } from "./crypto";
@@ -141,6 +142,37 @@ export class SchoolStore {
           effectiveEnabled: Boolean(a.effectiveEnabled),
           locationRegistered: Boolean(a.building && a.floor && a.place),
         })),
+      };
+    })();
+  }
+  clientConfig(): ClientSchoolConfig {
+    return this.database.transaction(() => {
+      const meta = this.database.prepare("SELECT version FROM school_meta WHERE id=1").get() as {
+        version: number;
+      };
+      const networks = this.database
+        .prepare(
+          "SELECT id,ssid,security,credential FROM school_network WHERE enabled=1 ORDER BY id LIMIT 501",
+        )
+        .all() as { id: string; ssid: string; security: Security; credential: string | null }[];
+      const accessPoints = this.database
+        .prepare(`SELECT a.id,a.network_id AS networkId,a.bssid FROM school_ap a
+        JOIN school_network n ON n.id=a.network_id WHERE a.enabled=1 AND n.enabled=1 ORDER BY a.id LIMIT 5001`)
+        .all() as ClientSchoolConfig["accessPoints"];
+      if (networks.length > 500 || accessPoints.length > 5000) return unavailable();
+      return {
+        schemaVersion: 1 as const,
+        version: meta.version,
+        networks: networks.map(({ id, ssid, security, credential }) => {
+          let password: string | null = null;
+          if (security !== "open") {
+            if (!credential) return unavailable();
+            password = this.cipher.open(credential, `network:${id}`);
+          }
+          if (security !== "open" && !password) return unavailable();
+          return { id, ssid, security, password };
+        }),
+        accessPoints,
       };
     })();
   }
