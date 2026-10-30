@@ -21,7 +21,7 @@
 
 ## Task 1: 프로토콜·세션 코어
 
-Files: apps/windows/Waggle.Core/*, Waggle.Tests/*, Waggle.slnx, global.json, Directory.Build.props.
+Files: `apps/windows/Waggle.Core/`, `Waggle.Tests/`, `Waggle.slnx`, `global.json`, `Directory.Build.props`.
 
 Interfaces: ServiceOrigin.Parse, MemberApi.Login/Refresh/Me/Logout, ISessionStore.Load/Save/Clear, MemberSession.Login/Restore/Check/Logout.
 
@@ -31,7 +31,7 @@ Interfaces: ServiceOrigin.Parse, MemberApi.Login/Refresh/Me/Logout, ISessionStor
 
 ## Task 2: Windows 저장과 UI
 
-Files: apps/windows/Waggle.Windows/*, Windows 저장소 검사와 실행 안내.
+Files: `apps/windows/Waggle.Windows/`, Windows 저장소 검사와 실행 안내.
 
 - [ ] DPAPI 왕복·원문 부재·잘못된 암호문·교체·삭제를 먼저 실패시킨 뒤 구현한다. 실제 OS 보호 기능을 검사한다.
 - [ ] BASE 흰색·청록·14~16px 본문과 28px 제목을 적용한 WPF 코드 로그인/계정 화면을 만든다.

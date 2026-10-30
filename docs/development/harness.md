@@ -27,3 +27,10 @@ PR의 확인 명령·결과와 관련 이슈가 영속 기록이다. 실행 중 
 - 2026-10-29: settings:setup과 settings:migrate 추가. dotenv 파서로 기존 암호화 키를 보존하며 명시적 준비 명령으로만 학교 설정 스키마를 변경한다.
 
 참고한 공개 저장소: [Washer-Client-v2](https://github.com/sunwoo162/Washer-Client-v2). 세부 기술과 상태는 와글의 실제 파일·검사 결과를 기준으로 한다.
+
+## Windows 앱 검사
+
+.NET 10 SDK와 Windows를 사용한다. npm run windows:build는 잠금 파일 기준 복원·Release 빌드, npm run windows:check는 빌드·Windows 테스트·C# 공백 검사까지 수행한다. 실행 중인 검증 앱을 종료하고 실행한다. npm run windows:run은 WPF 앱을 시작한다. .tools/dotnet의 프로젝트 로컬 SDK가 있으면 우선하며 전역 PATH는 수정하지 않는다.
+
+CI의 windows-quality는 windows-latest와 setup-dotnet으로 동일한 locked restore·build·test·format 검사를 실행한다. 기존 quality는 웹·서버·문서 검사다. 각 NuGet packages.lock.json을 커밋하고 bin/obj/.tools는 저장소 검사에서도 차단한다. OTF는 원본·OFL을 보관하는 바이너리 자산으로 취급한다.
+NuGet의 packages.lock.json은 도구가 생성한 서식을 유지하며 Biome 대상으로 중복 포맷하지 않는다. 잠금 검증은 dotnet restore --locked-mode가 담당한다.

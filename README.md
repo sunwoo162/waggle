@@ -4,7 +4,7 @@
 
 학교는 GSM 한 곳으로 고정합니다. 학교 선택·추가나 여러 학교를 운영하는 서비스 확장은 계획하지 않습니다.
 
-**현재 단계** 운영자 인증·네트워크/AP 관리·개인 코드와 기기 세션 코드 구현 · DataGSM 등록·네이티브 앱과 교내 실기기 검증 전  
+**현재 단계** 운영자·네트워크/AP·개인 코드 관리와 Windows 계정 로그인 구현 · 실제 DataGSM·교내 Wi-Fi 검증 전  
 **대상** Android Kotlin · Windows C# · 관리자 웹  
 **시각 기준** 사용자 제공 BASE 디자인 시스템
 
@@ -24,7 +24,7 @@ npm run dev
 
 네트워크·AP 저장소는 [학교 설정 안내](docs/development/school-settings.md)에 따라 npm run settings:setup과 npm run settings:migrate로 별도 키·DB를 준비합니다. 비밀번호는 암호화하며 관리 응답에 반환하지 않습니다.
 
-개인 코드·기기 세션은 [발급·인증 안내](docs/development/personal-invites.md)에 따라 npm run members:migrate로 준비합니다. 코드 원문은 발급 직후 한 번만 확인할 수 있습니다. 앱 연결·학교 이메일 인증·DataGSM 네이티브 복귀는 후속 작업입니다.
+개인 코드·기기 세션은 [발급·인증 안내](docs/development/personal-invites.md)에 따라 npm run members:migrate로 준비합니다. 코드 원문은 발급 직후 한 번만 확인할 수 있습니다. Windows 개인 코드 앱은 구현했으며 학교 이메일 인증·DataGSM 네이티브 복귀는 후속 작업입니다.
 
 ```sh
 npm run check       # 동작 테스트·저장소·문서·Biome·타입
@@ -36,7 +36,7 @@ npm run docs:build  # 기획 문서 허브 재생성
 | ------------------- | --------------------------- | ----------------------------------------------------------- |
 | 관리자 웹·공통 서버 | apps/admin                  | 운영자 인증·네트워크/AP·개인 코드·기기 세션, 실제 연동 대기 |
 | Android             | apps/android                | Kotlin 구현·실기기 검증 예정                                |
-| Windows             | apps/windows                | C# 구현·실기기 검증 예정                                    |
+| Windows             | apps/windows                | C#·WPF 로그인·OS 보호 저장 구현, Wi-Fi 후속                 |
 | 기획·디자인         | docs                        | 제품·정책·BASE·화면 명세                                    |
 | 개발 하네스         | AGENTS.md, scripts, .github | 커밋 훅·검사·PR CI                                          |
 
@@ -61,3 +61,6 @@ npm run docs:build  # 기획 문서 허브 재생성
 확정 요구, 기획 제안, 현장 검증 대기, 구현 전 상태를 구분합니다. 같은 계정의 기기 간 도감 공유는 아직 제안이며 실제 연결 성공에 따른 해금은 확정 요구입니다. 가격·출시일·실제 학교 도면은 정해지지 않은 값을 만들어 넣지 않습니다.
 
 원문과 공식 기술 자료는 [참고 자료](docs/handbook/pages/13-resources.md)에서 확인할 수 있습니다.
+
+
+Windows 계정 앱은 .NET 10 SDK를 준비하고 `npm run windows:check`, `npm run windows:run`으로 검사·실행합니다. [Windows 안내](apps/windows/README.md)에 저장·오류·검증 범위를 기록했습니다.

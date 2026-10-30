@@ -812,7 +812,7 @@
 </tbody></table></div>
 <p>Android 제안이 적용되지 않거나 기본 OS보다 개선이 없다면 지원 범위와 제품 약속을 다시 검토한다. 숫자 기준과 주기는 실제 조건 확인 후 정한다.</p>
 </div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/08-validation.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#validation~section-validation-1">플랫폼별 출시 조건</a><a class="level2" href="#validation~section-validation-2">기획에서 정하는 성공 기준</a><a class="level2" href="#validation~section-validation-3">검증 기록</a></nav></div><div class="reading-grid" data-page="roadmap" id="page-roadmap" hidden><article class="document"><header class="doc-header"><div class="eyebrow">ROADMAP</div><h1>개발 일정과 역할</h1><p class="doc-summary">임의의 마감일 대신 단계별 목표와 통과 조건으로 정리합니다.</p><div class="doc-meta"><span class="status-badge neutral">달력 일정 미정</span><span>2026.10.29 기준</span></div></header><div class="prose"><h2 id="section-roadmap-1">현재 위치</h2>
-<p>운영자 OAuth·서버 가드, 네트워크/AP 관리와 개인 코드·기기 세션 코드를 구현했다. DataGSM 클라이언트 등록과 실제 계정 연동·네이티브 앱·학교 현장 연결은 검증 전이다. 학교 이메일 인증·DataGSM 네이티브 복귀와 설정 배포는 후속 작업이다.</p>
+<p>운영자·네트워크/AP·개인 코드 관리와 Windows 코드 로그인·보호 저장을 구현했다. Windows 인증은 합성 서버·계정으로 확인했으며 DataGSM 실제 계정·교내 Wi-Fi는 검증 전이다. 학교 이메일·DataGSM 네이티브 복귀·설정 배포·Windows 자동 관리·Android는 후속이다.</p>
 <h2 id="section-roadmap-2">단계별 목표</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -1090,7 +1090,7 @@
 <h2 id="section-decisions-3">남은 결정과 현재 위치</h2>
 <p>사용자 결정이 필요한 제품 제안은 도감 항목 묶음 방식, 같은 계정의 기기 간 도감 공유, 첫 출시의 부팅 자동 시작 범위다. 현재 제안은 관리자가 정한 도감 항목에 AP를 매핑하고, 같은 계정의 진행도를 공유하며, 부팅 자동 시작은 첫 출시의 필수 조건으로 두지 않는 것이다.</p>
 <p>학교 SSID 구조·인증 방식·실제 Android 동작은 현장·기기 검증으로 확인할 항목이다. 프레임워크·DB·API 경로·정확한 임계값·알림 구현은 구현 계획에서 정할 항목이다. 이 세 종류를 섞어 같은 수준의 사용자 질문으로 취급하지 않는다.</p>
-<p>제품 기획을 바탕으로 구현을 진행하고 있다. 운영자 인증·네트워크/AP 관리와 개인 코드·기기 세션 코드를 작성했다. 학교 이메일 인증·DataGSM 네이티브 복귀·설정 배포·네이티브 연결·도감은 후속 구현과 현장 검증이 필요하다. 위 미확정 제품 제안은 구현 완료로 간주하지 않는다.</p>
+<p>운영자 인증·네트워크/AP·개인 코드 관리와 Windows 코드 로그인·보호 세션 저장을 구현했다. Windows 인증은 합성 서버·계정으로 확인했다. 학교 이메일·DataGSM 네이티브 복귀·설정 배포·Wi-Fi 자동 연결·Android·도감은 후속 구현과 현장 검증이 필요하다. 위 미확정 제품 제안은 구현 완료로 간주하지 않는다.</p>
 <h2 id="section-decisions-4">상태의 의미</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -1250,6 +1250,7 @@
 <li><a href="../development/datagsm-auth.md">운영자 인증 등록·실행 안내</a></li>
 <li><a href="../development/school-settings.md">학교 네트워크·AP 저장소 안내</a></li>
 <li><a href="../development/personal-invites.md">개인 코드 발급·기기 세션 안내</a></li>
+<li><a href="../development/windows-client.md">Windows 계정 앱 실행·검증 안내</a></li>
 </ul>
 <h2 id="section-resources-2">구성 참고</h2>
 <p><a href="https://app.notion.com/p/TEAM-GSM-SERVER-c0993fbd192d823a9ca201733be710ab?source=copy_link" target="_blank" rel="noopener noreferrer">TEAM GSM SERVER</a>의 프로젝트 홈과 하위 문서 분류를 참고했다. 소개·기능명세·정책·설계·일정·운영을 묶는 구성을 활용했다. 해당 프로젝트의 서비스 내용·인원·비용·일정을 우리 프로젝트의 사실로 옮기지 않았다.</p>
