@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./auth.css";
 import "./management.css";
+import "./invites.css";
 
 const pretendard = localFont({
   src: "./fonts/PretendardVariable.woff2",

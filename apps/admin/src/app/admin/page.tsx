@@ -166,8 +166,8 @@ export default async function AdminHome() {
             <li className="step-current">
               <span className="step-icon">2</span>
               <div>
-                <strong>운영자 인증과 프로젝트 문서</strong>
-                <small>DataGSM 로그인·서버 가드·기획 문서</small>
+                <strong>인증과 개인 코드 관리</strong>
+                <small>운영자 가드·코드 발급·기기별 세션 코드 구현</small>
               </div>
               <span className="step-state">현재</span>
             </li>
@@ -198,8 +198,8 @@ export default async function AdminHome() {
       <div className="development-notice">
         <ArrowDown size={14} aria-hidden="true" />
         <p>
-          운영자 인증과 네트워크·AP 관리 코드를 구현한 개발 환경입니다. 실제 계정 연동, 교내 데이터
-          등록과 앱 배포·기기 연결은 검증 전입니다.
+          운영자 인증·개인 코드·네트워크·AP 관리 코드를 구현한 개발 환경입니다. 실제 계정 연동, 교내
+          데이터 등록과 앱 배포·기기 연결은 검증 전입니다.
         </p>
       </div>
     </div>
