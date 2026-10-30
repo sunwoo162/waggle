@@ -94,7 +94,11 @@ export function CharacterEditor({
             accept="image/png,image/jpeg,image/webp"
             className="character-file"
             aria-describedby="character-image-help"
-            onChange={(e) => selectFile(e.target.files?.[0])}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              selectFile(file);
+            }}
           />
           {preview && (
             <button
