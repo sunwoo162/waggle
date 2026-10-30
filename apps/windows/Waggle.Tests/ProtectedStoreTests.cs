@@ -8,6 +8,28 @@ namespace Waggle.Tests;
 public sealed class ProtectedStoreTests
 {
     [TestMethod]
+    public async Task LockedFileKeepsPendingCleanupUntilWindowsAllowsDeletion()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "waggle-locked-test-" + Guid.NewGuid());
+        var file = Path.Combine(directory, "session.bin");
+        var store = new ProtectedSessionStore(file);
+        await store.SaveAsync(new("https://waggle.example", ProtocolTests.Pair), default);
+        var api = new SessionTests.Api();
+        var session = new MemberSession(store, _ => api);
+        await session.RestoreAsync(default);
+        api.Offline = true;
+        using (var locked = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Assert.AreEqual(Failure.Storage, (await Assert.ThrowsAsync<MemberException>(() => session.LogoutAsync(default))).Failure);
+            Assert.IsTrue(session.NeedsCleanup); Assert.IsTrue(session.HasStoredSession);
+            Assert.IsNull(session.Current); Assert.IsTrue(File.Exists(file));
+        }
+        api.Offline = false;
+        await session.LogoutAsync(default);
+        Assert.IsFalse(session.NeedsCleanup); Assert.IsFalse(File.Exists(file));
+        Directory.Delete(directory);
+    }
+    [TestMethod]
     public async Task OsProtectionRoundTripReplacementAndNoPlaintextOnDisk()
     {
         var directory = Path.Combine(Path.GetTempPath(), "waggle-store-test-" + Guid.NewGuid());

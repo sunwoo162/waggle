@@ -46,12 +46,52 @@ public sealed class SessionTests
         Assert.AreEqual(Failure.Unauthorized, (await Assert.ThrowsAsync<MemberException>(() => session.RestoreAsync(default))).Failure);
         Assert.IsNull(store.Value); Assert.AreEqual(0, api.Refreshes);
     }
+    [TestMethod]
+    public async Task FailedLocalRemovalKeepsCleanupControlsWithoutAuthenticatingAgain()
+    {
+        var store = new Store { Value = new("https://configured.waggle.example", ProtocolTests.Pair) };
+        var api = new Api(); var session = new MemberSession(store, _ => api);
+        await session.RestoreAsync(default);
+        api.Offline = true; store.FailClear = true;
+        Assert.AreEqual(Failure.Storage, (await Assert.ThrowsAsync<MemberException>(() => session.LogoutAsync(default))).Failure);
+        Assert.IsNull(session.Current); Assert.IsTrue(session.HasStoredSession);
+        Assert.IsNotNull(store.Value);
+        api.Offline = false;
+        Assert.AreEqual(Failure.Storage, (await Assert.ThrowsAsync<MemberException>(() => session.CheckAsync(default))).Failure);
+        store.FailClear = false;
+        await session.LogoutAsync(default);
+        Assert.IsNull(store.Value); Assert.IsFalse(session.HasStoredSession);
+    }
+    [TestMethod]
+    public async Task RestoredServiceAddressSurvivesExpiryAndLogout()
+    {
+        const string origin = "https://configured.waggle.example/";
+        var store = new Store { Value = new(origin, ProtocolTests.Pair with { RefreshExpiresAt = 1 }) };
+        var session = new MemberSession(store, _ => new Api());
+        await Assert.ThrowsAsync<MemberException>(() => session.RestoreAsync(default));
+        Assert.AreEqual(origin, session.Origin);
+        store.Value = new(origin, ProtocolTests.Pair);
+        await session.RestoreAsync(default);
+        await session.LogoutAsync(default);
+        Assert.AreEqual(origin, session.Origin);
+    }
+    [TestMethod]
+    public async Task FailedFirstSaveAndRemovalStillOffersCleanupRetry()
+    {
+        var store = new Store { FailSave = true, FailClear = true };
+        var session = new MemberSession(store, _ => new Api());
+        await Assert.ThrowsAsync<MemberException>(() => session.LoginAsync("https://waggle.example", "synthetic-code", "검증", default));
+        Assert.IsTrue(session.NeedsCleanup); Assert.IsTrue(session.HasStoredSession);
+        store.FailClear = false;
+        await session.LogoutAsync(default);
+        Assert.IsFalse(session.NeedsCleanup); Assert.IsFalse(session.HasStoredSession);
+    }
     internal sealed class Store : ISessionStore
     {
-        public StoredSession? Value; public bool FailSave;
+        public StoredSession? Value; public bool FailSave, FailClear;
         public Task<StoredSession?> LoadAsync(CancellationToken ct) => Task.FromResult(Value);
         public Task SaveAsync(StoredSession s, CancellationToken ct) { if (FailSave) throw new IOException("synthetic-storage-failure"); Value = s; return Task.CompletedTask; }
-        public Task ClearAsync(CancellationToken ct) { Value = null; return Task.CompletedTask; }
+        public Task ClearAsync(CancellationToken ct) { if (FailClear) throw new IOException("synthetic-clear-failure"); Value = null; return Task.CompletedTask; }
     }
     internal sealed class Api : IMemberApi
     {
