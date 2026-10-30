@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight, ShieldCheck, Sparkles, Wifi } from "lucide-react";
+import { BookOpen, ChevronRight, ShieldCheck, Wifi } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminNav } from "./admin-nav";
@@ -38,13 +38,6 @@ export function AdminShell({
         </div>
         <div className="nav-label">워크스페이스</div>
         <AdminNav />
-        <div className="upcoming-nav">
-          <div className="nav-label">다음에 만나요</div>
-          <span>
-            <Sparkles size={17} aria-hidden="true" />
-            도감 관리<small>준비 중</small>
-          </span>
-        </div>
         <div className="sidebar-note">
           <BookOpen size={18} aria-hidden="true" />
           <strong>함께 만드는 연결</strong>

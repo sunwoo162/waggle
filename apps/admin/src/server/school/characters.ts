@@ -10,6 +10,7 @@ export function migrateCharacters(db: Database.Database) {
       ap_id TEXT PRIMARY KEY REFERENCES school_ap(id), name TEXT NOT NULL, description TEXT NOT NULL,
       image_hash TEXT REFERENCES school_art(hash), revision INTEGER NOT NULL
     );
+    CREATE INDEX school_character_art ON school_character(image_hash);
     PRAGMA user_version=2;
   `);
 }
@@ -28,7 +29,9 @@ function content(value: unknown, max: number, required: boolean) {
     typeof value !== "string" ||
     value.length > max ||
     (required && !value.trim()) ||
-    Array.from(value).some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127) ||
+    Array.from(value).some(
+      (c) => (c.charCodeAt(0) < 32 && (required || c !== "\n")) || c.charCodeAt(0) === 127,
+    ) ||
     Buffer.from(value).toString() !== value
   )
     invalid("form", "이름과 소개의 길이·문자를 확인해주세요.");

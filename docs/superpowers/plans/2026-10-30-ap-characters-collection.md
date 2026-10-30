@@ -37,19 +37,19 @@
 
 ## Task 1 학교 콘텐츠
 
-- [ ] tests/characters.test.ts에서 스키마 이전·AP당 하나·revision 충돌·위치 제외·비활성화·이미지 형식/픽셀/용량·자산 정리를 먼저 실패시킨다.
-- [ ] CharacterStore(database)의 snapshot(), catalog(), save(apId,input), asset(hash), validateReports(input)를 구현한다. save는 이미지 검사를 await한 뒤 트랜잭션에서 revision을 다시 검사한다.
-- [ ] node --import tsx --test tests/characters.test.ts tests/school-store.test.ts tests/client-config.test.ts 통과 후 커밋.
+- [x] tests/characters.test.ts에서 스키마 이전·AP당 하나·revision 충돌·위치 제외·비활성화·이미지 형식/픽셀/용량·자산 정리를 먼저 실패시킨다.
+- [x] CharacterStore(database)의 snapshot(), catalog(), save(apId,input), asset(hash), validateReports(input)를 구현한다. save는 이미지 검사를 await한 뒤 트랜잭션에서 revision을 다시 검사한다.
+- [x] node --import tsx --test tests/characters.test.ts tests/school-store.test.ts tests/client-config.test.ts 통과 후 커밋.
 
 ## Task 2 인증된 도감 동기화
 
-- [ ] tests/collection.test.ts와 tests/character-http.test.ts에서 실제 인증/DB의 두 기기·다른 계정·중복·회수·본문/Origin 제한·현재 AP 검증을 먼저 실패시킨다.
-- [ ] GET /api/client/encyclopedia, GET/POST /api/client/collection, GET/PATCH /api/admin/characters, GET /api/art/:hash를 연결한다. POST 보고는 최대 100개, 기기별 도감 요청 60회/5분. 계정·시각을 요청에서 받지 않는다.
-- [ ] 관련 검사·TypeScript 통과 후 커밋.
+- [x] tests/collection.test.ts와 tests/character-http.test.ts에서 실제 인증/DB의 두 기기·다른 계정·중복·회수·본문/Origin 제한·현재 AP 검증을 먼저 실패시킨다.
+- [x] GET /api/client/encyclopedia, GET/POST /api/client/collection, GET/PATCH /api/admin/characters, GET /api/art/:hash를 연결한다. POST 보고는 최대 100개, 기기별 도감 요청 60회/5분. 계정·시각을 요청에서 받지 않는다.
+- [x] 관련 검사·TypeScript 통과 후 커밋.
 
 ## Task 3 관리자 화면과 전달
 
-- [ ] 목록 검색·AP 선택·텍스트/그림 저장·빈 상태·오류·revision 충돌·회색/컬러 미리보기를 BASE로 구현한다. 관리자 메뉴의 준비 중 항목을 실제 경로로 교체한다.
-- [ ] 실제 화면은 합성 DB와 실제 관리 HTTP를 이용해 확인하고 운영 데이터나 인증 우회 경로를 만들지 않는다.
-- [ ] 운영 안내·기획 상태·이전 단계 완료 기록을 반영하고 check/build를 통과시킨다.
+- [x] 목록 검색·AP 선택·텍스트/그림 저장·빈 상태·오류·revision 충돌·회색/컬러 미리보기를 BASE로 구현한다. 관리자 메뉴의 준비 중 항목을 실제 경로로 교체한다.
+- [x] 실제 화면은 합성 DB와 실제 관리 HTTP를 이용해 확인하고 운영 데이터나 인증 우회 경로를 만들지 않는다.
+- [x] 운영 안내·기획 상태·이전 단계 완료 기록을 반영하고 check/build를 통과시킨다.
 - [ ] 독립 리뷰 한 건과 필요한 RED→GREEN 수정, PR의 정확한 커밋 CI 확인 후 병합한다. Windows 연결 엔진 단계로 계속한다.

@@ -5,6 +5,7 @@ import "./globals.css";
 import "./auth.css";
 import "./management.css";
 import "./invites.css";
+import "./characters.css";
 
 const pretendard = localFont({
   src: "./fonts/PretendardVariable.woff2",
