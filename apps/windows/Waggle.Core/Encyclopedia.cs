@@ -35,7 +35,7 @@ public sealed record ConnectionReport(string ApId, string Ssid, string Bssid)
     public void Validate() => new SchoolConfig(1, 0, [new(ApId, Ssid, "open", null)], [new(ApId, ApId, Bssid)]).Validate();
     public bool Matches(SchoolConfig config) => config.AccessPoints.Any(a => a.Id == ApId && a.Bssid == Bssid && config.Networks.Any(n => n.Id == a.NetworkId && n.Ssid == Ssid));
 }
-public enum LocalEventKind { Started, Paused, Connected, Requested, Failed, Collected }
+public enum LocalEventKind { Started, Paused, Connected, Requested, Failed, Collected, TimedOut }
 public sealed record LocalConnectionEvent(long At, LocalEventKind Kind, string? Ssid);
 public sealed record ClientState(string Origin, string MemberId, Encyclopedia Catalog, Collection Collected, ConnectionReport[] Pending, LocalConnectionEvent[] History)
 {

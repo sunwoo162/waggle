@@ -6,14 +6,15 @@ public sealed class WifiPolicy
     private int weakSamples;
     private DateTimeOffset? lastRequest;
     private (string ApId, DateTimeOffset Deadline)? pending;
+    public string? TimedOutApId { get; private set; }
     public WifiDecision Decide(SchoolConfig config, WifiObservation observation, DateTimeOffset now)
     {
-        config.Validate();
+        config.Validate(); TimedOutApId = null;
         var current = WifiMatch.ConnectedAp(config, observation.Connection);
         if (pending is { } request)
         {
             if (current?.Id == request.ApId) { pending = null; weakSamples = 0; }
-            else if (now >= request.Deadline) Failed(request.ApId, now);
+            else if (now >= request.Deadline) { TimedOutApId = request.ApId; Failed(request.ApId, now); }
             else return new(WifiAction.Wait, WifiReason.PendingConnection);
         }
         if (observation.Busy) return new(WifiAction.Wait, WifiReason.AdapterBusy);
@@ -48,5 +49,5 @@ public sealed class WifiPolicy
     {
         lastRequest = now; weakSamples = 0; pending = null; blocked[apId] = now.AddMinutes(5);
     }
-    public void Reset() { weakSamples = 0; lastRequest = null; pending = null; blocked.Clear(); }
+    public void Reset() { weakSamples = 0; lastRequest = null; pending = null; TimedOutApId = null; blocked.Clear(); }
 }

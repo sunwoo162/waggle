@@ -8,7 +8,7 @@ public sealed record WifiTarget(string ApId, NetworkConfig Network, string Bssid
 public enum WifiAction { Keep, Wait, Connect }
 public enum WifiReason { NormalConnection, ForeignConnection, WeakConnection, NoCandidate, Cooldown, PendingConnection, AdapterBusy }
 public sealed record WifiDecision(WifiAction Action, WifiReason Reason, WifiTarget? Target = null);
-public enum WifiFailure { LocationPermission, Permission, RadioOff, Unavailable, InvalidResponse, ProfileRejected }
+public enum WifiFailure { LocationPermission, Permission, RadioOff, Unavailable, InvalidResponse, ProfileRejected, Busy }
 public sealed class WifiException(WifiFailure failure) : Exception("waggle_wifi_" + failure)
 {
     public WifiFailure Failure { get; } = failure;

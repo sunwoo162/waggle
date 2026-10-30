@@ -16,7 +16,7 @@ internal sealed class WindowsWlanApi : IWindowsWlanApi
     private static void Check(uint code, bool location = false, bool profile = false)
     {
         if (code == 0) return;
-        throw new WifiException(code switch { 5 when location => WifiFailure.LocationPermission, 5 => WifiFailure.Permission, 0x80342002u => WifiFailure.RadioOff, _ when profile => WifiFailure.ProfileRejected, _ => WifiFailure.Unavailable });
+        throw new WifiException(code switch { 5 when location => WifiFailure.LocationPermission, 5 => WifiFailure.Permission, 170 => WifiFailure.Busy, 0x80342002u => WifiFailure.RadioOff, _ when profile => WifiFailure.ProfileRejected, _ => WifiFailure.Unavailable });
     }
     private static byte[] Copy(IntPtr pointer, uint size, int minimum, int maximum)
     {
