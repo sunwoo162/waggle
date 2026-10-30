@@ -14,6 +14,7 @@
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
     <ProjectReference Include="../Waggle.Core/Waggle.Core.csproj" />
+    <ProjectReference Include="../Waggle.Platform.Windows/Waggle.Platform.Windows.csproj" />
     <ProjectReference Include="../Waggle.Security.Windows/Waggle.Security.Windows.csproj" />
   </ItemGroup>
 

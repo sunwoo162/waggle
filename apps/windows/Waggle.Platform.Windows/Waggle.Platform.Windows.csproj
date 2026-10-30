@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="../Waggle.Core/Waggle.Core.csproj"/><InternalsVisibleTo Include="Waggle.Tests" /></ItemGroup></Project>

@@ -160,6 +160,12 @@
       "waggle.core": {
         "type": "Project"
       },
+      "waggle.platform.windows": {
+        "type": "Project",
+        "dependencies": {
+          "Waggle.Core": "[1.0.0, )"
+        }
+      },
       "waggle.security.windows": {
         "type": "Project",
         "dependencies": {
