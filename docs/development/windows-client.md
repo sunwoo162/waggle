@@ -12,6 +12,6 @@ Windows에서 .NET 10 SDK를 준비한 뒤 루트의 `npm run windows:check`, `n
 
 실제 WPF 실행 파일을 실제 인증 서비스·HTTP와 메모리 DB의 합성 계정에 연결해 로그인·재실행 복원·장애/복구·로그아웃·코드 회수를 확인했다. 실제 사람 계정·DataGSM·학교 네트워크 연결 검증으로 표시하지 않는다. 제품 인증 우회·가짜 로그인 모드는 없다.
 
-다음 범위는 인증된 학교 설정 배포와 Native Wi-Fi 조회·실제 연결 성공 관찰이다. 설치 프로그램·서명·업데이트·Android는 아직 구현하지 않았다. 자세한 코드 구성과 복구 조건은 저장소 apps/windows/README.md에 있다.
+[인증된 학교 설정 배포](client-school-config.md)와 Windows 검증·계정별 DPAPI 캐시 코어를 추가했다. 앱 화면·OS 프로필 설치에는 아직 연결하지 않았다. 다음 범위는 Native Wi-Fi 조회·실제 연결 성공 관찰이다. 설치 프로그램·서명·업데이트·Android는 아직 구현하지 않았다. 자세한 코드 구성과 복구 조건은 저장소 apps/windows/README.md에 있다.
 
 공식 근거: [WPF](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/overview/), [ProtectedData](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.protecteddata), [.NET 지원](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core).
