@@ -390,4 +390,9 @@ export class MemberService {
       if (!(error instanceof MemberError) || error.code !== "unauthorized") throw error;
     }
   }
+  async configAccess(token: unknown) {
+    const identity = await this.access(token);
+    this.limit(`config:${identity.device.id}`, 12, 300_000);
+    return identity;
+  }
 }
