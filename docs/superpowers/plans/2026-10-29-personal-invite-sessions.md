@@ -30,24 +30,27 @@ Files: server/members/{config,factory,service,errors}.ts, shared/members.ts, tes
 
 Interfaces: createMemberAuth(settings,db), migrateMembers(auth,db,settings), MemberService.issue/login/refresh/access/logout/reissue/revoke/revokeDevice/snapshot.
 
-- [ ] 실제 Better Auth + SQLite로 코드만 로그인·한 사용자/두 기기·원문 미반환·실패 제한·갱신 재사용/경합·만료·회수/재발급·기기별 로그아웃·관리자 분리의 실패 테스트를 먼저 확인한다.
-- [ ] 프레임워크 해시/세션/JWT와 트랜잭션의 버전 재검사로 구현한다. 비동기 검증 중 회수되면 새로 만든 세션을 허용하지 않는다.
-- [ ] 키·DB 경로 검증과 명시적 members:migrate를 추가한다. 웹 요청 중 migration하지 않는다.
-- [ ] 통과 후 의미 있는 커밋을 만든다.
+- [x] 실제 Better Auth + SQLite로 코드만 로그인·한 사용자/두 기기·원문 미반환·실패 제한·갱신 재사용/경합·만료·회수/재발급·기기별 로그아웃·관리자 분리의 실패 테스트를 먼저 확인한다.
+- [x] 프레임워크 해시/세션/JWT와 트랜잭션의 버전 재검사로 구현한다. 비동기 검증 중 회수되면 새로 만든 세션을 허용하지 않는다.
+- [x] 키·DB 경로 검증과 명시적 members:migrate를 추가한다. 웹 요청 중 migration하지 않는다.
+- [x] 통과 후 의미 있는 커밋을 만든다.
 
 ## Task 2: HTTP 경계
 
 Files: server/http.ts(공유 JSON 제한), server/members/{http,runtime}.ts, app/api/admin/members/[[...path]], app/api/client/[[...path]], tests/member-http.test.ts.
 
-- [ ] 관리자 401/403/503, Origin·메서드·과대 본문, 공개 경로 allowlist·쿠키 무시·안전한 실패·no-store·토큰 종류 혼용 거부를 먼저 실패시킨다.
-- [ ] 관리자 발급/재발급/회수/기기 회수, 네이티브 code-login/refresh/logout/me를 얇게 연결한다. 코드·토큰 반환은 필요한 응답에만 한다.
-- [ ] 기존 학교 관리 API 테스트와 함께 검증하고 커밋한다.
+- [x] 관리자 401/403/503, Origin·메서드·과대 본문, 공개 경로 allowlist·쿠키 무시·안전한 실패·no-store·토큰 종류 혼용 거부를 먼저 실패시킨다.
+- [x] 관리자 발급/재발급/회수/기기 회수, 네이티브 code-login/refresh/logout/me를 얇게 연결한다. 코드·토큰 반환은 필요한 응답에만 한다.
+- [x] 기존 학교 관리 API 테스트와 함께 검증하고 커밋한다.
 
 ## Task 3: 관리 UI와 전달
 
 Files: components/members/*, app/admin/invites/page.tsx, admin-nav, CSS·운영 문서.
 
-- [ ] 별칭별 목록·발급·재발급·회수·기기 회수와 일시적 원문 표시/숨김/복사를 구현한다. 기기 상태는 실제 로그인/갱신 기록으로만 표시한다.
-- [ ] 합성 자료 UI에서 발급/숨김/재조회/회수·충돌·반응형을 확인한다. 스크린샷은 코드를 숨긴 상태만 저장한다.
-- [ ] 전체 check/build, 독립 리뷰의 중요 발견 한 차례 수정, 실제 미로그인 경계와 최신 CI를 확인한다.
-- [ ] #4 참조 PR을 생성·연결한다. 이메일·DataGSM 복귀·네이티브 OS 저장·설정 배포는 후속으로 명확히 기록한다.
+- [x] 별칭별 목록·발급·재발급·회수·기기 회수와 일시적 원문 표시/숨김/복사를 구현한다. 기기 상태는 실제 로그인/갱신 기록으로만 표시한다.
+- [x] 합성 자료 UI에서 발급/숨김/재조회/회수·충돌·반응형을 확인한다. 스크린샷은 코드를 숨긴 상태만 저장한다.
+- [x] 전체 check/build, 독립 리뷰의 중요 발견 한 차례 수정, 실제 미로그인 경계와 최신 CI를 확인한다.
+- [x] #4 참조 PR을 생성·연결한다. 이메일·DataGSM 복귀·네이티브 OS 저장·설정 배포는 후속으로 명확히 기록한다.
+
+
+결과: PR #15. 자동 검사 60개·check/build와 합성 UI 검증 통과. 독립 리뷰와 늦은 응답 수정은 docs/development/reviews/2026-10-30-personal-invites.md 참조. 학교 이메일·실제 앱 연결은 후속이다.
