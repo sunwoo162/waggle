@@ -35,16 +35,23 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
   const [notice, setNotice] = useState("");
   const [copied, setCopied] = useState(false);
   const locked = useRef(false);
+  const visibilityEpoch = useRef(0);
   const anchor = useRef<HTMLDivElement>(null);
   const addButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const hide = () => {
-      if (document.hidden) setIssued(null);
+      visibilityEpoch.current += 1;
+      setIssued(null);
+      setCopied(false);
     };
-    document.addEventListener("visibilitychange", hide);
+    const visibilityChanged = () => {
+      if (document.hidden) hide();
+    };
+    document.addEventListener("visibilitychange", visibilityChanged);
     window.addEventListener("pagehide", hide);
     return () => {
-      document.removeEventListener("visibilitychange", hide);
+      visibilityEpoch.current += 1;
+      document.removeEventListener("visibilitychange", visibilityChanged);
       window.removeEventListener("pagehide", hide);
     };
   }, []);
@@ -87,6 +94,7 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
   }
   async function mutate(path: string, body: Record<string, unknown>, label: string) {
     if (locked.current) return;
+    const requestEpoch = visibilityEpoch.current;
     locked.current = true;
     setBusy(true);
     setError("");
@@ -111,7 +119,11 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
       setAlias("");
       setConfirmation(null);
       if (data.code) {
-        setIssued({ code: data.code, alias: data.member.alias });
+        if (requestEpoch === visibilityEpoch.current && !document.hidden) {
+          setIssued({ code: data.code, alias: data.member.alias });
+        } else {
+          setNotice("발급 중 화면을 떠나 코드를 숨겼습니다. 필요하면 재발급해주세요.");
+        }
         focusPanel();
       } else {
         setNotice(label);
