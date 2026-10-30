@@ -90,6 +90,18 @@ public sealed class CollectionSyncTests
         Assert.IsFalse(await sync.RecordAsync(updated, WifiPolicyTests.Observation().Connection! with { Bssid = "02:00:00:00:00:03" }, WifiPolicyTests.Now.AddMinutes(1), default));
         Assert.AreEqual("02:00:00:00:00:03", store.Value!.Pending.Single().Bssid); Assert.HasCount(1, store.Value.History);
     }
+    [TestMethod]
+    public async Task LocalHistoryIsBoundedAndClearingItPreservesCollectedAndPendingSets()
+    {
+        var session = new MemberSession(new SessionTests.Store(), _ => new SessionTests.Api());
+        await session.LoginAsync("https://waggle.example", "synthetic-code", "검증", default);
+        var store = new Store(); var sync = new CollectionSync(session, store);
+        for (var i = 0; i < 220; i++) await sync.LogAsync(LocalEventKind.Paused, null, WifiPolicyTests.Now.AddSeconds(i), default);
+        Assert.HasCount(200, store.Value!.History);
+        var old = store.Value;
+        await sync.ClearHistoryAsync(default); Assert.HasCount(0, store.Value.History);
+        Assert.AreSame(old.Collected, store.Value.Collected); Assert.AreSame(old.Pending, store.Value.Pending);
+    }
     internal sealed class Store : IClientStateStore
     {
         public ClientState? Value; public bool FailSave; public TaskCompletionSource? SaveStarted, ReleaseSave;

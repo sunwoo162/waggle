@@ -13,7 +13,8 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     private string? lastBssid;
     public bool ManagementRequested { get; private set; }
     public bool Running { get; private set; }
-    public bool NeedsCleanup { get; private set; }
+    private bool cleanupPending;
+    public bool NeedsCleanup => cleanupPending || session.NeedsCleanup;
     public bool HasStoredSession => NeedsCleanup || session.HasStoredSession;
     public Identity? Identity => session.Current;
     public string? Origin => session.Origin;
@@ -197,10 +198,16 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
             var failed = session.NeedsCleanup || session.HasStoredSession;
             try { await configs.ClearAsync(CancellationToken.None); } catch { failed = true; }
             try { await collection.ClearAsync(CancellationToken.None); } catch { failed = true; }
-            NeedsCleanup = failed; Status = failed ? ClientStatus.CleanupRequired : ClientStatus.SignedOut;
+            cleanupPending = failed; Status = failed ? ClientStatus.CleanupRequired : ClientStatus.SignedOut;
             if (failed) throw new MemberException(Failure.Storage);
             return remote;
         }
+        finally { gate.Release(); }
+    }
+    public async Task ClearHistoryAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try { RequireClean(); await collection.ClearHistoryAsync(ct); }
         finally { gate.Release(); }
     }
     public async ValueTask DisposeAsync()

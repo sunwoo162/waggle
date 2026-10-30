@@ -34,3 +34,5 @@ PR의 확인 명령·결과와 관련 이슈가 영속 기록이다. 실행 중 
 
 CI의 windows-quality는 windows-latest와 setup-dotnet으로 동일한 locked restore·build·test·format 검사를 실행한다. 기존 quality는 웹·서버·문서 검사다. 각 NuGet packages.lock.json을 커밋하고 bin/obj/.tools는 저장소 검사에서도 차단한다. OTF는 원본·OFL을 보관하는 바이너리 자산으로 취급한다.
 NuGet의 packages.lock.json은 도구가 생성한 서식을 유지하며 Biome 대상으로 중복 포맷하지 않는다. 잠금 검증은 dotnet restore --locked-mode가 담당한다.
+
+2026-10-30: Windows 검사에 Native Wi-Fi 버퍼·API 대역, 후보 정책·직렬 coordinator·도감 대기열·SkiaSharp 제한 디코딩·Global mutex 회귀 검사를 추가했다. 실제 무선 API는 검사에서 호출하지 않는다. 별도 합성 WPF 조립은 무시된 .superpowers 아래의 메모리 DB·보호 파일을 사용한다. 일반 앱에 개발용 인증 우회나 무선 대역 플래그를 넣지 않는다. 실행 중인 WPF는 파일을 잠그므로 종료 후 빌드한다.

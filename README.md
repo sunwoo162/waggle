@@ -4,7 +4,7 @@
 
 학교는 GSM 한 곳으로 고정합니다. 학교 선택·추가나 여러 학교를 운영하는 서비스 확장은 계획하지 않습니다.
 
-**현재 단계** 운영자·네트워크/AP·개인 코드·캐릭터 관리, 도감 API와 Windows 계정 로그인 구현 · 실제 DataGSM·교내 Wi-Fi 검증 전  
+**현재 단계** 운영자·네트워크/AP·개인 코드·캐릭터 관리, 도감 API와 Windows 자동 관리·그림 도감 구현 · 실제 DataGSM·교내 Wi-Fi 검증 전  
 **대상** Android Kotlin · Windows C# · 관리자 웹  
 **시각 기준** 사용자 제공 BASE 디자인 시스템
 
@@ -26,7 +26,7 @@ npm run dev
 
 개인 코드·기기 세션은 [발급·인증 안내](docs/development/personal-invites.md)에 따라 npm run members:migrate로 준비합니다. 코드 원문은 발급 직후 한 번만 확인할 수 있습니다. Windows 개인 코드 앱은 구현했으며 학교 이메일 인증·DataGSM 네이티브 복귀는 후속 작업입니다.
 
-[앱용 학교 설정 배포](docs/development/client-school-config.md)는 인증된 활성 접속정보만 전달하며 Windows 검증·계정별 보호 캐시 코어를 구현했습니다. 앱 화면·OS 프로필 설치·자동 연결은 후속입니다.
+[앱용 학교 설정 배포](docs/development/client-school-config.md)는 인증된 활성 접속정보만 전달합니다. [Windows 자동 관리](docs/development/windows-wifi.md)는 계정별 보호 캐시·동의 후 프로필 요청·OS 연결 관찰·그림 도감·트레이를 조립했습니다. 실제 교내 접속은 검증 전입니다.
 
 [도감 관리 안내](docs/development/encyclopedia.md)에 따라 학교·사용자 스키마를 v2로 이전하면 캐릭터 그림·별명 편집과 계정별 수집 API를 사용할 수 있습니다. 실제 OS 연결 관찰·사용자 도감 화면은 네이티브 앱 단계에서 연결합니다.
 
@@ -40,7 +40,7 @@ npm run docs:build  # 기획 문서 허브 재생성
 | ------------------- | --------------------------- | ----------------------------------------------------------- |
 | 관리자 웹·공통 서버 | apps/admin                  | 운영자 인증·네트워크/AP·개인 코드·기기 세션, 실제 연동 대기 |
 | Android             | apps/android                | Kotlin 구현·실기기 검증 예정                                |
-| Windows             | apps/windows                | C#·WPF 로그인·OS 보호 저장 구현, Wi-Fi 후속                 |
+| Windows             | apps/windows                | C#·WPF 인증·자동 관리·그림 도감·트레이, 교내 검증 전        |
 | 기획·디자인         | docs                        | 제품·정책·BASE·화면 명세                                    |
 | 개발 하네스         | AGENTS.md, scripts, .github | 커밋 훅·검사·PR CI                                          |
 
