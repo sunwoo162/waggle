@@ -39,7 +39,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     {
         LastFailure = error.Failure; Running = false; verified = false;
         nextRefresh = clock.GetUtcNow().AddSeconds(error.Failure == Failure.RateLimited ? 300 : 60);
-        if (error.Failure is not (Failure.Offline or Failure.Unavailable or Failure.RateLimited) || !session.HasStoredSession) { ManagementRequested = false; CancelManagement(); }
+        if (error.Failure is not (Failure.Offline or Failure.Unavailable or Failure.RateLimited or Failure.Conflict) || !session.HasStoredSession) { ManagementRequested = false; CancelManagement(); }
         Status = NeedsCleanup || session.NeedsCleanup ? ClientStatus.CleanupRequired : session.HasStoredSession ? ClientStatus.VerificationRequired : ClientStatus.SignedOut;
     }
     private void WifiFailed(WifiException error)
@@ -216,6 +216,23 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
             cleanupPending = failed; Status = failed ? ClientStatus.CleanupRequired : ClientStatus.SignedOut;
             if (failed) throw new MemberException(Failure.Storage);
             return remote;
+        }
+        finally { gate.Release(); }
+    }
+    // The currently connected Wi-Fi can be requested only when it is not already a registered school network.
+    public bool CanRequestCurrentWifi => Observation?.Connection is { Ssid.Length: > 0, Security: "open" or "wpa2-personal" or "wpa3-personal" } connected &&
+        configs.Current is { } school && WifiMatch.ConnectedNetwork(school.Config, connected) is null && school.Config.Networks.All(n => n.Ssid != connected.Ssid);
+    public async Task RequestCurrentWifiAsync(string room, string password, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            RequireClean();
+            if (!CanRequestCurrentWifi) throw new MemberException(Failure.InvalidInput);
+            var connected = Observation!.Connection!;
+            var input = new WifiRequestInput(room, connected.Ssid!, connected.Security, connected.Security == "open" ? null : password);
+            // Duplicate submissions after a 401 retry are harmless: the operator reviews each request.
+            await session.WithAccessAsync(async (_, _, api, token, cancellation) => { await api.SubmitWifiRequestAsync(token, input, cancellation); return true; }, ct);
         }
         finally { gate.Release(); }
     }

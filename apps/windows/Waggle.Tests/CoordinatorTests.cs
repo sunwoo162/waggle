@@ -114,6 +114,32 @@ public sealed class CoordinatorTests
         Assert.IsTrue(f.Client.Running); Assert.AreEqual(2, f.Wifi.Observations);
     }
     [TestMethod]
+    public async Task OnlyAnUnregisteredConnectedWifiCanBeRequestedOnUserAction()
+    {
+        var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
+        Assert.IsFalse(f.Client.CanRequestCurrentWifi);
+        await Assert.ThrowsAsync<MemberException>(() => f.Client.RequestCurrentWifiAsync("3층 2반", "synthetic-room-pass", default));
+        f.Wifi.Observation = WifiPolicyTests.Observation() with { Connection = new("GSM-NEW-ROOM", "02:cc:00:00:00:01", "wpa2-personal", 70) };
+        f.Time.Advance(10); await f.Client.TickAsync(default);
+        Assert.IsTrue(f.Client.CanRequestCurrentWifi); Assert.HasCount(0, f.Api.WifiRequests);
+        await f.Client.RequestCurrentWifiAsync("3층 2반", "synthetic-room-pass", default);
+        Assert.AreEqual(new WifiRequestInput("3층 2반", "GSM-NEW-ROOM", "wpa2-personal", "synthetic-room-pass"), f.Api.WifiRequests.Single());
+        Assert.DoesNotContain("synthetic-room-pass", f.Api.WifiRequests.Single().ToString());
+        f.Wifi.Observation = WifiPolicyTests.Observation() with { Connection = new("회사망", "02:cc:00:00:00:02", "unsupported", 70) };
+        f.Time.Advance(10); await f.Client.TickAsync(default);
+        Assert.IsFalse(f.Client.CanRequestCurrentWifi);
+    }
+    [TestMethod]
+    public async Task ServerConflictDuringRefreshKeepsManagementOnLikeOtherTemporaryFailures()
+    {
+        var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
+        f.Api.CollectionConflict = true; f.Time.Advance(60);
+        await Assert.ThrowsAsync<MemberException>(() => f.Client.TickAsync(default));
+        Assert.IsTrue(f.Client.ManagementRequested);
+        f.Api.CollectionConflict = false; f.Time.Advance(60); await f.Client.TickAsync(default);
+        Assert.IsTrue(f.Client.Running);
+    }
+    [TestMethod]
     public async Task PauseCancelsSlowObservationBeforeItCanConnect()
     {
         var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);

@@ -62,6 +62,25 @@ public partial class MainWindow : Window
         finally { pausing = false; Render(); }
     }
     private async void RefreshClicked(object sender, RoutedEventArgs e) => await RunAsync(async () => { await client.RefreshAsync(closing.Token); Notice("계정·학교 설정과 도감을 동기화했어요."); });
+    private async void RequestWifiClicked(object sender, RoutedEventArgs e) => await RunAsync(async () =>
+    {
+        try
+        {
+            await client.RequestCurrentWifiAsync(RequestRoomInput.Text, RequestPasswordInput.Password, closing.Token);
+            RequestRoomInput.Text = "";
+            Notice("등록 요청을 보냈어요. 운영자가 확인하면 다음 동기화 때 자동으로 연결돼요.");
+        }
+        catch (MemberException error) when (error.Failure is Failure.InvalidInput or Failure.Conflict or Failure.RateLimited)
+        {
+            Notice(error.Failure switch
+            {
+                Failure.Conflict => "이미 와글에 등록된 Wi-Fi예요.",
+                Failure.RateLimited => "오늘은 요청을 더 보낼 수 없어요. 내일 다시 시도해주세요.",
+                _ => "실 이름과 비밀번호(영문·숫자·기호 8~63자)를 확인해주세요.",
+            });
+        }
+        finally { RequestPasswordInput.Clear(); }
+    });
     private async void ClearHistoryClicked(object sender, RoutedEventArgs e) => await RunAsync(async () => { await client.ClearHistoryAsync(closing.Token); Notice("이 기기의 연결 기록을 비웠어요."); });
     private async void LogoutClicked(object sender, RoutedEventArgs e) => await RunAsync(async () =>
     {
@@ -172,6 +191,9 @@ public partial class MainWindow : Window
             var status = StatusText(client.Status); ManagementStateText.Text = TrayStateText.Text = status; tray.Update(client.ManagementRequested, status);
             ManagementHintText.Text = client.Status == ClientStatus.VerificationRequired && client.ManagementRequested ? "서버에서 계정을 재확인할 때까지 새 연결 요청을 쉬어요. 잠시 후 자동으로 다시 확인해요." : client.DecisionReason == WifiReason.ForeignConnection ? "학교 밖의 Wi-Fi를 사용하고 있어요. 현재 연결을 유지해요." : client.Status == ClientStatus.Connecting ? "연결을 요청했어요. Windows가 확인한 결과를 기다리고 있어요." : "신호가 충분하면 연결을 유지하고, 나빠지면 더 나은 학교망 후보를 확인해요. 신호 세기가 실제 속도를 보장하지는 않아요.";
             var observation = client.Observation; var connected = observation?.Connection;
+            RequestPanel.Visibility = client.CanRequestCurrentWifi ? Visibility.Visible : Visibility.Collapsed;
+            RequestSsidText.Text = connected?.Ssid is { } requestSsid ? "지금 연결: " + requestSsid : "";
+            RequestWifiButton.IsEnabled = !busy;
             ConnectionStateText.Text = client.Running ? connected is null ? "연결할 학교망 확인 중" : "Windows 연결 확인" : observation is null ? "연결 상태 확인 전" : "마지막으로 확인한 연결";
             ConnectionNameText.Text = connected is not null ? connected.Ssid ?? "이름을 읽을 수 없는 Wi-Fi" : observation is null ? "관리 시작으로 연결을 확인해요" : "연결된 Wi-Fi가 없어요";
             QualityText.Text = connected is null ? "현재 연결은 Windows에서 확인해요." : $"신호 {connected.Quality}% · 신호 세기와 실제 속도는 다를 수 있어요.";

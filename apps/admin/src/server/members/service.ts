@@ -398,6 +398,11 @@ export class MemberService {
     this.limit(`config:${identity.device.id}`, 12, 300_000);
     return identity;
   }
+  async wifiRequestAccess(token: unknown) {
+    const identity = await this.access(token);
+    this.limit(`wifi-request:${identity.device.id}`, 5, 86_400_000);
+    return identity;
+  }
   async collectionAccess(token: unknown) {
     const identity = await this.access(token);
     this.limit(`collection:${identity.device.id}`, 60, 300_000);
