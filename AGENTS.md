@@ -20,6 +20,7 @@
 - `npm run build`: 문서 자료 준비와 production build.
 - `npm run docs:build`: Python 3.11+와 Node 22로 문서 허브 재생성.
 - `npm run windows:check`, `npm run windows:run`: Windows의 .NET 10 앱 검사와 실행. 웹 검사와 별도로 CI windows-quality를 유지한다.
+- `cd apps/android && ./gradlew testDebugUnitTest lintDebug assembleDebug`: Android 앱 검사. CI android-quality. Windows에서는 한글이 없는 경로의 복사본에서 실행한다.
 
 ## 작업과 검토
 
