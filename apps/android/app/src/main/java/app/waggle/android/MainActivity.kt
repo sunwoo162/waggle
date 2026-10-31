@@ -142,7 +142,18 @@ private fun WaggleScreen(onTurnedOn: () -> Unit) {
                 OutlinedButton(enabled = !state.busy, onClick = { scope.launch { controller.sync() } }) { Text("지금 갱신") }
                 OutlinedButton(enabled = !state.busy, onClick = { requesting = true }) { Text("Wi-Fi 등록 요청") }
             }
-            TextButton(enabled = !state.busy, onClick = { scope.launch { controller.logout() } }) { Text("로그아웃") }
+            var deleting by remember { mutableStateOf(false) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(enabled = !state.busy, onClick = { scope.launch { controller.logout() } }) { Text("로그아웃") }
+                TextButton(enabled = !state.busy, onClick = { deleting = true }) { Text("계정 삭제") }
+            }
+            if (deleting) AlertDialog(
+                onDismissRequest = { deleting = false },
+                title = { Text("계정을 영구히 삭제할까요?") },
+                text = { Text("개인 코드, 모든 기기의 로그인, 모은 친구 기록이 지워지고 되돌릴 수 없어요. 와글이 등록한 학교 Wi-Fi도 지워요.") },
+                confirmButton = { TextButton(onClick = { deleting = false; scope.launch { controller.deleteAccount() } }) { Text("영구 삭제") } },
+                dismissButton = { TextButton(onClick = { deleting = false }) { Text("취소") } },
+            )
             if (requesting) RequestDialog(onDismiss = { requesting = false }) { room, ssid, security, password ->
                 requesting = false
                 scope.launch { controller.requestWifi(room, ssid, security, password) }

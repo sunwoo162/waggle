@@ -202,6 +202,43 @@ export class MemberService {
       })
       .immediate();
   }
+  /**
+   * Deletes the account: its personal code, every device session, its collection set and the internal user.
+   * With [expected] (operator path) the revision must match; the app path deletes the caller's own account.
+   */
+  async deleteMember(id: string, expected?: unknown) {
+    const userId = this.db
+      .transaction(() => {
+        const member = expected === undefined ? this.member(id) : this.revision(id, expected);
+        if (!member) return denied();
+        const devices = this.db
+          .prepare("SELECT id FROM native_device WHERE member_id=?")
+          .all(id) as {
+          id: string;
+        }[];
+        const bucket = this.db.prepare("DELETE FROM native_limit WHERE bucket=?");
+        for (const d of devices)
+          for (const kind of ["refresh", "config", "collection", "wifi-request"])
+            bucket.run(`${kind}:${d.id}`);
+        this.db.prepare("DELETE FROM native_collection WHERE member_id=?").run(id);
+        this.db.prepare("DELETE FROM native_device WHERE member_id=?").run(id);
+        this.db.prepare("DELETE FROM native_member WHERE id=?").run(id);
+        this.db.prepare('DELETE FROM "session" WHERE "userId"=?').run(member.user_id);
+        this.db.prepare("DELETE FROM native_limit WHERE bucket=?").run(`selector:${id}`);
+        return member.user_id;
+      })
+      .immediate();
+    try {
+      await this.auth.api.dropInviteIdentity({ body: { userId } });
+    } catch {
+      // The account is already unusable; still make sure the internal user row (operator alias) is gone.
+      try {
+        this.db.prepare('DELETE FROM "user" WHERE id=?').run(userId);
+      } catch {
+        // The deletion above is committed; a leftover empty user row holds no account data.
+      }
+    }
+  }
   async revokeDevice(memberId: string, deviceId: string, expected: unknown) {
     this.db
       .transaction(() => {

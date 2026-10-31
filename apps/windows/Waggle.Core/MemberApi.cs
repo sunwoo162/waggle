@@ -51,6 +51,7 @@ public sealed class MemberApi : IMemberApi
         var collection = await SendAsync<Collection>("collection", reports.Length == 0 ? null : new { reports }, token, ct, 512 * 1024);
         collection.Validate(); return collection;
     }
+    public async Task DeleteAccountAsync(string token, CancellationToken ct) => await SendAsync<object>("account-delete", new { }, token, ct);
     public async Task SubmitWifiRequestAsync(string token, WifiRequestInput input, CancellationToken ct)
     {
         if (input.Room.Trim() is not { Length: > 0 and <= 40 } || input.Ssid.Length is 0 or > 32 || input.Security is not ("open" or "wpa2-personal" or "wpa3-personal"))
@@ -78,7 +79,7 @@ public sealed class MemberApi : IMemberApi
                     HttpStatusCode.Conflict => Failure.Conflict,
                     _ => Failure.Unavailable
                 });
-            if (path == "logout")
+            if (path is "logout" or "account-delete")
             {
                 if (response.StatusCode != HttpStatusCode.NoContent) throw new MemberException(Failure.InvalidResponse);
                 return default!;

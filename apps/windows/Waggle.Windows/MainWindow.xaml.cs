@@ -96,6 +96,17 @@ public partial class MainWindow : Window
         }
         finally { RequestPasswordInput.Clear(); }
     });
+    private async void DeleteAccountClicked(object sender, RoutedEventArgs e)
+    {
+        var answer = MessageBox.Show(this, "계정을 영구히 삭제할까요?\n\n개인 코드, 모든 기기의 로그인, 모은 친구 기록이 지워지고 되돌릴 수 없어요. 와글이 이 PC에 등록한 학교 Wi-Fi도 지워요.", "와글 계정 삭제", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+        if (answer != MessageBoxResult.Yes) return;
+        await RunAsync(async () =>
+        {
+            await client.DeleteAccountAsync(closing.Token);
+            RememberAutoStart(autoStart.Remove); ConsentInput.IsChecked = false; lastNotice = default;
+            Notice("계정을 삭제했어요." + (client.ProfileCleanupPending ? " 등록한 학교 Wi-Fi는 지우지 못했어요. 다음에 와글을 열 때 다시 지울게요." : ""));
+        });
+    }
     private async void ClearHistoryClicked(object sender, RoutedEventArgs e) => await RunAsync(async () => { await client.ClearHistoryAsync(closing.Token); Notice("이 기기의 연결 기록을 비웠어요."); });
     private async void LogoutClicked(object sender, RoutedEventArgs e) => await RunAsync(async () =>
     {
@@ -189,6 +200,7 @@ public partial class MainWindow : Window
             PageDescription.Text = !stored ? "운영자에게 받은 개인 코드로 시작하세요." : view switch { "collection" => "학교 Wi-Fi에서 만나는 작은 친구들.", "account" => "이 기기의 계정과 저장 정보를 관리해요.", _ => "연결은 가볍게, 친구는 차곡차곡." };
             LoginPanel.IsEnabled = !busy; LoginButton.Content = busy ? "확인 중…" : "개인 코드로 로그인";
             CheckButton.IsEnabled = CollectionRefreshButton.IsEnabled = !busy && !cleanup;
+            DeleteAccountButton.IsEnabled = !busy && !cleanup && client.Identity is not null;
             LogoutButton.IsEnabled = !busy; LogoutButton.Content = cleanup ? "저장 정보 다시 정리" : "이 기기에서 로그아웃";
             var identity = client.Identity;
             AliasText.Text = cleanup ? "로그아웃 마무리 필요" : identity?.Member.Alias ?? "계정 재확인 필요";

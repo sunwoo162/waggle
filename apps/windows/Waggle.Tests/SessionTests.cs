@@ -109,7 +109,8 @@ public sealed class SessionTests
         public bool CollectionConflict;
         public Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct) { Guard(); if (CollectionConflict) throw new MemberException(Failure.Conflict); Reports.AddRange(reports); return Task.FromResult(Collection); }
         public Task LogoutAsync(string token, CancellationToken ct) { Guard(); LoggedOut.Add(token); return Task.CompletedTask; }
-        public List<WifiRequestInput> WifiRequests = [];
+        public List<WifiRequestInput> WifiRequests = []; public int Deleted;
+        public Task DeleteAccountAsync(string token, CancellationToken ct) { Guard(); Deleted++; Revoked = true; return Task.CompletedTask; }
         public Task SubmitWifiRequestAsync(string token, WifiRequestInput input, CancellationToken ct) { Guard(); WifiRequests.Add(input); return Task.CompletedTask; }
         public void Dispose() { }
     }

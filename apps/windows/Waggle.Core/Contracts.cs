@@ -56,4 +56,6 @@ public interface IMemberApi : IDisposable
     Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct);
     Task LogoutAsync(string token, CancellationToken ct);
     Task SubmitWifiRequestAsync(string token, WifiRequestInput input, CancellationToken ct);
+    /// <summary>Permanently deletes the signed-in account (code, device sessions, collection).</summary>
+    Task DeleteAccountAsync(string token, CancellationToken ct);
 }
