@@ -15,12 +15,18 @@ public partial class MainWindow : Window
     private readonly ArtImages art = new();
     private readonly DispatcherTimer ticker = new() { Interval = TimeSpan.FromSeconds(10) };
     private readonly TrayController tray;
+    private readonly AutoStartSettings autoStart = new();
+    private bool background;
     private bool loaded, busy, starting, pausing, rendering, allowClose, exiting, backgroundNotice;
     private string view = "home";
     private ClientState? renderedCollection;
     private (string? Id, DateTimeOffset? At) lastNotice;
     private Dictionary<string, CharacterCard> cards = new(StringComparer.Ordinal);
     public MainWindow() : this(CreateClient()) { }
+    public MainWindow(bool background) : this(CreateClient()) => this.background = background;
+    // Started at Windows sign-in: load in the tray without showing the window.
+    public void StartInTray() { ShowInTaskbar = false; WindowState = WindowState.Minimized; Show(); Hide(); WindowState = WindowState.Normal; ShowInTaskbar = true; }
+    private void RememberAutoStart(Action change) { try { change(); } catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException) { } }
     public MainWindow(ClientCoordinator client, string? initialOrigin = null)
     {
         this.client = client; InitializeComponent();
@@ -39,6 +45,8 @@ public partial class MainWindow : Window
     {
         loaded = true; ticker.Start();
         await RunAsync(async () => { await client.RestoreAsync(closing.Token); if (client.Origin is { } origin) ServerInput.Text = origin; });
+        if (background && client.Identity is not null && autoStart.ResumeAdapter() is { } resume)
+            await RunAsync(async () => { await client.StartAsync(resume, true, closing.Token); Notice("Windows 로그인과 함께 자동 관리를 다시 켰어요."); });
     }
     private async void LoginClicked(object sender, RoutedEventArgs e)
     {
@@ -49,7 +57,7 @@ public partial class MainWindow : Window
     private async void StartClicked(object sender, RoutedEventArgs e)
     {
         starting = true;
-        try { await RunAsync(async () => { if (AdapterInput.SelectedValue is not Guid id) throw new MemberException(Failure.InvalidInput); await client.StartAsync(id, ConsentInput.IsChecked == true, closing.Token); Notice("자동 관리를 시작했어요. 연결 결과는 Windows에서 확인해요."); }); }
+        try { await RunAsync(async () => { if (AdapterInput.SelectedValue is not Guid id) throw new MemberException(Failure.InvalidInput); await client.StartAsync(id, ConsentInput.IsChecked == true, closing.Token); if (Environment.ProcessPath is { } exe) RememberAutoStart(() => autoStart.TurnedOn(id, exe)); Notice("자동 관리를 시작했어요. Windows에 로그인하면 와글이 트레이에서 자동으로 다시 켜져요."); }); }
         finally { starting = false; Render(); }
     }
     private async void PauseClicked(object sender, RoutedEventArgs e) => await PauseControlAsync();
@@ -57,7 +65,7 @@ public partial class MainWindow : Window
     {
         if (pausing || exiting) return;
         pausing = true; Render();
-        try { await client.PauseAsync(CancellationToken.None); Notice("자동 관리를 일시 중지했어요. 현재 Wi-Fi 연결은 유지해요."); }
+        try { await client.PauseAsync(CancellationToken.None); RememberAutoStart(autoStart.TurnedOff); Notice("자동 관리를 일시 중지했어요. 현재 Wi-Fi 연결은 유지해요."); }
         catch (Exception error) { ShowError(error); }
         finally { pausing = false; Render(); }
     }
@@ -84,6 +92,7 @@ public partial class MainWindow : Window
     private async void ClearHistoryClicked(object sender, RoutedEventArgs e) => await RunAsync(async () => { await client.ClearHistoryAsync(closing.Token); Notice("이 기기의 연결 기록을 비웠어요."); });
     private async void LogoutClicked(object sender, RoutedEventArgs e) => await RunAsync(async () =>
     {
+        RememberAutoStart(autoStart.Remove);
         var remote = await client.LogoutAsync(closing.Token); ConsentInput.IsChecked = false; lastNotice = default;
         Notice((remote ? "이 기기에서 로그아웃했어요." : "이 기기의 자료를 정리했어요. 서버 회수는 확인하지 못했으니 필요하면 운영자에게 기기 회수를 요청해주세요.") +
             (client.ProfileCleanupPending ? " 등록한 학교 Wi-Fi는 지우지 못했어요. 다음에 와글을 열 때 다시 지울게요." : ""));
