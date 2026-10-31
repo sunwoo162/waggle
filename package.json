@@ -18,6 +18,7 @@
     "auth:migrate": "tsx apps/admin/scripts/migrate-auth.mts",
     "settings:setup": "node scripts/setup-school.mjs",
     "settings:migrate": "tsx apps/admin/scripts/migrate-school.mts",
+    "settings:rotate-key": "tsx apps/admin/scripts/rotate-school-key.mts",
     "members:migrate": "tsx apps/admin/scripts/migrate-members.mts",
     "windows:build": "node scripts/windows.mjs build",
     "windows:check": "node scripts/windows.mjs check",

@@ -1,4 +1,5 @@
 import type { AdminAccess } from "../auth/access";
+import { requireRecentSignIn } from "../auth/recent";
 import { jsonPrivate as json, readJson } from "../http";
 import { MemberError, memberInvalid } from "./errors";
 import type { MemberService } from "./service";
@@ -35,6 +36,8 @@ export function createMemberAdminHandler(deps: {
   getAccess: (headers: Headers) => Promise<AdminAccess>;
   getService: () => MemberService;
   origin: () => string;
+  /** Operator action log (no codes or tokens). Optional so the member store works without the school store. */
+  audit?: (operator: string, action: string, target: string) => void;
 }) {
   return async (request: Request): Promise<Response> => {
     try {
@@ -56,23 +59,34 @@ export function createMemberAdminHandler(deps: {
       if (request.method !== "POST") return badMethod(path === "" ? "GET, POST" : "POST");
       if (request.headers.get("origin") !== deps.origin())
         return json({ message: "같은 관리 사이트에서 요청해주세요." }, 403);
+      const stale = requireRecentSignIn(access);
+      if (stale) return stale;
       const parsed = await readJson(request);
       if ("error" in parsed)
         return json({ message: "JSON 입력 형식과 크기를 확인해주세요." }, parsed.error);
       const service = deps.getService();
+      const audit = (action: string, target: string) =>
+        deps.audit?.(access.user.id, action, target);
       if (path === "") {
         const body = object(parsed.value, ["alias"]);
         const issued = await service.issue(body.alias);
+        audit("member.issue", issued.member.id);
         return json({ ...issued, snapshot: service.snapshot() }, 201);
       }
       const body = object(parsed.value, ["revision"]);
       const parts = path.split("/").filter(Boolean);
       if (parts[1] === "reissue") {
         const issued = await service.reissue(parts[0], body.revision);
+        audit("member.reissue", parts[0]);
         return json({ ...issued, snapshot: service.snapshot() });
       }
-      if (parts[1] === "sessions") await service.revokeDevice(parts[0], parts[2], body.revision);
-      else await service.revoke(parts[0], body.revision);
+      if (parts[1] === "sessions") {
+        await service.revokeDevice(parts[0], parts[2], body.revision);
+        audit("member.device-revoke", parts[2]);
+      } else {
+        await service.revoke(parts[0], body.revision);
+        audit("member.revoke", parts[0]);
+      }
       return json({ snapshot: service.snapshot() });
     } catch (error) {
       return fail(error);

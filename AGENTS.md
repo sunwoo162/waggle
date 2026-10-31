@@ -15,6 +15,7 @@
 - `npm run dev`: 관리자 개발 서버와 문서 자료 준비.
 - `npm run test`: 의미 있는 동작·경계 테스트.
 - `npm run settings:setup`, `npm run settings:migrate`: 기존 키를 보존하는 학교 설정 키 준비와 명시적 스키마 준비.
+- `npm run settings:rotate-key`: 서버를 멈춘 뒤 `WAGGLE_SETTINGS_NEXT_KEY`의 새 키로 학교 설정 암호문을 다시 암호화한다. 키는 출력하지 않는다.
 - `npm run members:migrate`: 별도 개인 코드·기기 세션 스키마 준비. 코드·사용자는 생성하지 않는다.
 - `npm run check`: 테스트, 비밀 파일 검사, 문서 링크, Biome, TypeScript.
 - `npm run build`: 문서 자료 준비와 production build.

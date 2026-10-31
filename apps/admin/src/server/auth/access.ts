@@ -7,7 +7,12 @@ export type AdminAccess =
   | { kind: "unavailable" }
   | { kind: "unauthenticated" }
   | { kind: "forbidden" }
-  | { kind: "authorized"; user: { id: string; name: string } };
+  | {
+      kind: "authorized";
+      user: { id: string; name: string };
+      /** When this operator session was created (ms). Sensitive changes need a recent sign-in. */
+      signedInAt?: number;
+    };
 
 export async function authorizeAdmin(
   auth: WaggleAuth,
@@ -22,5 +27,9 @@ export async function authorizeAdmin(
     .get(session.user.id, "datagsm") as { accountId: unknown } | undefined;
   const subject = normalizeSubject(account?.accountId);
   if (!subject || subject !== normalizeSubject(operatorSubject)) return { kind: "forbidden" };
-  return { kind: "authorized", user: { id: session.user.id, name: session.user.name } };
+  return {
+    kind: "authorized",
+    user: { id: session.user.id, name: session.user.name },
+    signedInAt: new Date(session.session.createdAt).getTime(),
+  };
 }
