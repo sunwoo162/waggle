@@ -1,0 +1,4 @@
+<!-- Quick Settings icon, on: filled Wi-Fi fan (24dp, solid white). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,3C7.8,3 4,4.6 1.2,7.3L12,21L22.8,7.3C20,4.6 16.2,3 12,3Z" />
+</vector>

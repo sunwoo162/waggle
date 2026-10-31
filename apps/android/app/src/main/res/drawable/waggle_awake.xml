@@ -1,0 +1,6 @@
+<!-- Placeholder Waggle character, awake (on). Replace with the operator's art when ready. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="96dp" android:height="96dp" android:viewportWidth="96" android:viewportHeight="96">
+    <path android:fillColor="#FF0BB7AE" android:pathData="M48,8a40,40 0,1 1,0 80a40,40 0,1 1,0 -80Z" />
+    <path android:fillColor="#FF102A2A" android:pathData="M34,42m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0M62,42m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path android:strokeColor="#FF102A2A" android:strokeWidth="4" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M36,60Q48,72 60,60" />
+</vector>
