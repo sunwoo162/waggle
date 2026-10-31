@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
 import Database from "better-sqlite3";
+import sharp from "sharp";
 import { createMemberAuth, migrateMembers } from "../../apps/admin/src/server/members/factory";
 import { MemberService } from "../../apps/admin/src/server/members/service";
 import { migrateSchoolDatabase, SchoolStore } from "../../apps/admin/src/server/school/store";
 
-export async function collectionFixture() {
+export async function collectionFixture({ publish = true } = {}) {
   const db = new Database(":memory:");
   const settings = {
     baseURL: "http://localhost:3000",
@@ -35,6 +36,17 @@ export async function collectionFixture() {
     place: "관리자 전용 장소",
     enabled: true,
   });
+  // Only published characters (name + art) are collectable.
+  const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: "#0bb7ae" } })
+    .png()
+    .toBuffer();
+  if (publish)
+    await store.characters.save(ap.id, {
+      revision: 0,
+      name: "합성 친구",
+      description: "",
+      image: { mime: "image/png", base64: png.toString("base64") },
+    });
   return {
     db,
     auth,

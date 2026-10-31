@@ -47,6 +47,7 @@ export function isApId(id: unknown): id is string {
 const selectCharacters = `SELECT a.id,a.name AS apName,n.ssid,(a.enabled=1 AND n.enabled=1) AS enabled,
   COALESCE(c.name,'이름 없는 친구') AS name,COALESCE(c.description,'') AS description,
   CASE WHEN c.image_hash IS NULL THEN NULL ELSE '/api/art/'||c.image_hash END AS imagePath,
+  (a.enabled=1 AND n.enabled=1 AND c.ap_id IS NOT NULL AND c.image_hash IS NOT NULL) AS published,
   COALESCE(c.revision,0) AS revision FROM school_ap a JOIN school_network n ON n.id=a.network_id
   LEFT JOIN school_character c ON c.ap_id=a.id`;
 
@@ -59,13 +60,18 @@ export class CharacterStore {
       };
       const rows = this.db
         .prepare(`${selectCharacters} ORDER BY a.name,a.id LIMIT 5001`)
-        .all() as (Omit<CharacterSnapshot["characters"][number], "enabled"> & {
+        .all() as (Omit<CharacterSnapshot["characters"][number], "enabled" | "published"> & {
         enabled: number;
+        published: number;
       })[];
       if (rows.length > 5000) return unavailable();
       return {
         version: meta.version,
-        characters: rows.map((row) => ({ ...row, enabled: Boolean(row.enabled) })),
+        characters: rows.map((row) => ({
+          ...row,
+          enabled: Boolean(row.enabled),
+          published: Boolean(row.published),
+        })),
       };
     })();
   }
@@ -75,7 +81,7 @@ export class CharacterStore {
       schemaVersion: 1,
       version: snapshot.version,
       characters: snapshot.characters
-        .filter((c) => c.enabled)
+        .filter((c) => c.published)
         .map(({ id, name, description, imagePath }) => ({ id, name, description, imagePath })),
     };
   }
@@ -149,18 +155,19 @@ export class CharacterStore {
       invalid("reports", "연결 보고는 한 번에 100개 이하로 보내주세요.");
     const found = new Set<string>();
     const query =
-      this.db.prepare(`SELECT a.id FROM school_ap a JOIN school_network n ON n.id=a.network_id
+      this.db.prepare(`SELECT a.id,(c.image_hash IS NOT NULL) AS published FROM school_ap a
+      JOIN school_network n ON n.id=a.network_id LEFT JOIN school_character c ON c.ap_id=a.id
       WHERE a.id=? AND n.ssid=? AND a.bssid=? AND a.enabled=1 AND n.enabled=1`);
     for (const inputReport of value.reports) {
       const r = object(inputReport, ["apId", "ssid", "bssid"]);
-      if (
-        !isApId(r.apId) ||
-        typeof r.ssid !== "string" ||
-        typeof r.bssid !== "string" ||
-        !query.get(r.apId, r.ssid, r.bssid)
-      )
-        invalid("reports", "현재 학교 설정과 일치하는 연결만 수집할 수 있습니다.");
-      found.add(r.apId);
+      const row =
+        isApId(r.apId) && typeof r.ssid === "string" && typeof r.bssid === "string"
+          ? (query.get(r.apId, r.ssid, r.bssid) as { id: string; published: number } | undefined)
+          : undefined;
+      if (!row) invalid("reports", "현재 학교 설정과 일치하는 연결만 수집할 수 있습니다.");
+      // A real connection to an AP whose character is not published yet is accepted but not collected,
+      // so a client's queued report never blocks the rest of its batch. No retroactive collection.
+      if (row.published) found.add(row.id);
     }
     return [...found].sort();
   }

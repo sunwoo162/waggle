@@ -67,16 +67,21 @@ test("v1 학교 DB는 명시적으로 이전하고 키·AP·암호문을 보존�
     db.prepare("SELECT credential FROM school_network WHERE id=?").get(n.id),
     credential,
   );
-  assert.equal(reopened.characters.catalog().characters[0].id, ap.id);
+  assert.equal(reopened.characters.snapshot().characters[0].id, ap.id);
   db.close();
 });
 test("등록 AP마다 캐릭터 하나이며 앱 도감에는 설치 장소·SSID·BSSID를 포함하지 않는다", async () => {
   const { db, store, ap } = setup();
-  assert.equal(store.catalog().characters.length, 1);
-  assert.equal(store.catalog().characters[0].name, "이름 없는 친구");
+  assert.equal(store.catalog().characters.length, 0);
   const current = store.snapshot().characters[0];
   assert.equal(current.revision, 0);
-  await store.save(ap.id, { revision: 0, name: "쉿파이", description: "작은 패킷을 품은 친구" });
+  assert.equal(current.name, "이름 없는 친구");
+  await store.save(ap.id, {
+    revision: 0,
+    name: "쉿파이",
+    description: "작은 패킷을 품은 친구",
+    image: await image(),
+  });
   const catalog = store.catalog();
   assert.deepEqual(Object.keys(catalog.characters[0]).sort(), [
     "description",
@@ -156,7 +161,8 @@ test("PNG를 메타데이터 없는 WebP로 저장하고 참조 없는 이전 �
   assert.equal(store.catalog().characters[0].imagePath, saved.imagePath);
   assert.ok(store.catalog().version > version);
   await store.save(ap.id, { revision: 2, name: "쉿파이", description: "", image: null });
-  assert.equal(store.catalog().characters[0].imagePath, null);
+  assert.equal(store.snapshot().characters[0].imagePath, null);
+  assert.equal(store.catalog().characters.length, 0);
   assert.equal(store.asset(hash), null);
   db.close();
 });
@@ -197,9 +203,10 @@ test("형식 위장·큰 픽셀·큰 본문·다중 프레임·잘못된 base64 
   );
   db.close();
 });
-test("연결 보고는 현재 활성 AP·SSID·BSSID를 모두 확인하고 추가 항목·일괄 부분 성공을 거부한다", () => {
+test("연결 보고는 현재 활성 AP·SSID·BSSID를 모두 확인하고 추가 항목·일괄 부분 성공을 거부한다", async () => {
   const { db, store, ap, school, n } = setup();
   const report = { apId: ap.id, ssid: n.ssid, bssid: ap.bssid };
+  await store.save(ap.id, { revision: 0, name: "쉿파이", description: "", image: await image() });
   assert.deepEqual(store.validateReports({ reports: [report, report] }), [ap.id]);
   for (const input of [
     { reports: [{ ...report, ssid: "다른 망" }] },
