@@ -35,6 +35,24 @@ public sealed class CollectionSyncTests
         await session.LogoutAsync(default); Assert.IsNull(sync.Current);
     }
     [TestMethod]
+    public async Task UnpublishedCharacterIsNeverQueuedAndAcceptedReportsLeaveTheQueue()
+    {
+        var api = new SessionTests.Api { Config = SchoolConfigTests.Config(), Catalog = new(1, 1, []) };
+        var session = new MemberSession(new SessionTests.Store(), _ => api);
+        await session.LoginAsync("https://waggle.example", "synthetic-code", "검증", default);
+        var school = await session.DownloadSchoolConfigAsync(default);
+        var store = new Store(); var sync = new CollectionSync(session, store);
+        await sync.RefreshAsync(school, default);
+        Assert.IsFalse(await sync.RecordAsync(school, WifiPolicyTests.Observation().Connection, WifiPolicyTests.Now, default));
+        Assert.HasCount(0, store.Value!.Pending); Assert.HasCount(0, store.Value.History);
+        api.Catalog = Catalog(2); await sync.RefreshAsync(school, default);
+        Assert.IsTrue(await sync.RecordAsync(school, WifiPolicyTests.Observation().Connection, WifiPolicyTests.Now, default));
+        await sync.RefreshAsync(school, default);
+        Assert.HasCount(1, api.Reports); Assert.HasCount(0, store.Value.Pending); Assert.HasCount(0, store.Value.Collected.ApIds);
+        await sync.RefreshAsync(school, default);
+        Assert.HasCount(1, api.Reports);
+    }
+    [TestMethod]
     public async Task OtherOwnerIsIgnoredAndFailedSaveNeverPublishesNewCollection()
     {
         var api = new SessionTests.Api { Config = SchoolConfigTests.Config(), Catalog = Catalog() };

@@ -30,7 +30,7 @@ function request(
   });
 }
 test("캐릭터 관리 API는 운영자·Origin·수정 버전 경계를 유지한다", async () => {
-  const f = await collectionFixture();
+  const f = await collectionFixture({ publish: false });
   try {
     let access: AdminAccess = { kind: "unauthenticated" };
     let opens = 0;
@@ -254,7 +254,7 @@ test("수집 API는 활성 연결 보고만 계정별로 합치고 부분 저장
   }
 });
 test("공개 그림 경로는 재인코딩된 래스터만 고정 MIME·캐시로 반환한다", async () => {
-  const f = await collectionFixture();
+  const f = await collectionFixture({ publish: false });
   try {
     const png = await sharp({
       create: { width: 16, height: 16, channels: 3, background: "#0bb7ae" },

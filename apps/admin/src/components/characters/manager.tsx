@@ -133,7 +133,11 @@ export function CharacterManager({ initial }: { initial: CharacterSnapshot }) {
                   <span>
                     <strong>{c.name}</strong>
                     <small>{c.apName}</small>
-                    {!c.enabled && <em>AP 비활성</em>}
+                    {!c.enabled ? (
+                      <em>AP 비활성</em>
+                    ) : (
+                      !c.published && <em>미공개 · 별명과 그림이 있어야 앱에 보여요</em>
+                    )}
                   </span>
                 </button>
               ))}

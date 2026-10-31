@@ -39,7 +39,9 @@ public sealed class CollectionSync(MemberSession session, IClientStateStore stor
                 var batch = previous.Pending.Where(p => p.Matches(school.Config)).Take(50).ToArray();
                 var collected = await api.SyncCollectionAsync(token, batch, cancellation); collected.Validate();
                 var confirmed = collected.ApIds.ToHashSet(StringComparer.Ordinal);
-                return await SaveAsync(previous with { Catalog = catalog, Collected = collected, Pending = previous.Pending.Where(p => !confirmed.Contains(p.ApId)).ToArray() }, cancellation);
+                // The server accepted the whole batch; reports it did not collect (unpublished character) are not retried later.
+                var sent = batch.ToHashSet();
+                return await SaveAsync(previous with { Catalog = catalog, Collected = collected, Pending = previous.Pending.Where(p => !confirmed.Contains(p.ApId) && !sent.Contains(p)).ToArray() }, cancellation);
             }, ct);
         }
         catch (MemberException ex) when (ex.Failure == Failure.Unauthorized) { current = null; throw; }
@@ -57,6 +59,8 @@ public sealed class CollectionSync(MemberSession session, IClientStateStore stor
                 if (ap is null) return false;
                 var previous = await LoadAsync(identity, origin, cancellation);
                 if (previous.Collected.ApIds.Contains(ap.Id)) return false;
+                // Only characters in the published catalog are collectable; no retroactive collection.
+                if (!previous.Catalog.Characters.Any(c => c.Id == ap.Id)) return false;
                 var network = school.Config.Networks.Single(n => n.Id == ap.NetworkId);
                 var report = new ConnectionReport(ap.Id, network.Ssid, ap.Bssid);
                 var existing = previous.Pending.FirstOrDefault(p => p.ApId == ap.Id);
