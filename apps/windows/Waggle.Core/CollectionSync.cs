@@ -62,7 +62,8 @@ public sealed class CollectionSync(MemberSession session, IClientStateStore stor
                 // Only characters in the published catalog are collectable; no retroactive collection.
                 if (!previous.Catalog.Characters.Any(c => c.Id == ap.Id)) return false;
                 var network = school.Config.Networks.Single(n => n.Id == ap.NetworkId);
-                var report = new ConnectionReport(ap.Id, network.Ssid, ap.Bssid);
+                // Report the BSSID actually observed; the server accepts any BSSID of the physical AP.
+                var report = new ConnectionReport(ap.Id, network.Ssid, connection!.Bssid);
                 var existing = previous.Pending.FirstOrDefault(p => p.ApId == ap.Id);
                 if (existing == report) return false;
                 await SaveAsync(previous with { Pending = [.. previous.Pending.Where(p => p.ApId != ap.Id), report], History = existing is null ? [.. previous.History.TakeLast(199), new(now.ToUnixTimeMilliseconds(), LocalEventKind.Collected, network.Ssid)] : previous.History }, cancellation);

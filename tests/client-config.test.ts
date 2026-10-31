@@ -63,7 +63,9 @@ test("앱 설정은 활성 부모·AP와 정확한 접속정보만 포함하고 
   assert.deepEqual(result.networks, [
     { id: a.id, ssid: a.ssid, security: a.security, password: "synthetic-fixture-only" },
   ]);
-  assert.deepEqual(result.accessPoints, [{ id: ap.id, networkId: a.id, bssid: ap.bssid }]);
+  assert.deepEqual(result.accessPoints, [
+    { id: ap.id, networkId: a.id, bssid: ap.bssid, bssids: [ap.bssid] },
+  ]);
   const text = JSON.stringify(result);
   for (const field of ["building", "floor", "place", "credential", "revision", "합성 관리 이름"])
     assert.equal(text.includes(field), false);

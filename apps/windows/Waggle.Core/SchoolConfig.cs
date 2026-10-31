@@ -8,7 +8,13 @@ public sealed record NetworkConfig(string Id, string Ssid, string Security, stri
 {
     public override string ToString() => "NetworkConfig [redacted]";
 }
-public sealed record ApConfig(string Id, string NetworkId, string Bssid);
+/// <summary>One physical AP (one character). <c>Bssids</c> lists every BSSID of the device, main BSSID first; older servers omit it.</summary>
+public sealed record ApConfig(string Id, string NetworkId, string Bssid, string[]? Bssids = null)
+{
+    public IReadOnlyList<string> AllBssids => Bssids is { Length: > 0 } ? Bssids : [Bssid];
+    public bool Equals(ApConfig? other) => other is not null && Id == other.Id && NetworkId == other.NetworkId && Bssid == other.Bssid && AllBssids.SequenceEqual(other.AllBssids);
+    public override int GetHashCode() => HashCode.Combine(Id, NetworkId, Bssid, string.Join(",", AllBssids));
+}
 public sealed record SchoolConfig(int SchemaVersion, long Version, NetworkConfig[] Networks, ApConfig[] AccessPoints)
 {
     public override string ToString() => "SchoolConfig [redacted]";
@@ -32,10 +38,13 @@ public sealed record SchoolConfig(int SchemaVersion, long Version, NetworkConfig
         }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var bssids = new HashSet<string>(StringComparer.Ordinal);
+        static bool Bssid(string? b) => b is not null && Regex.IsMatch(b, @"\A(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\z") && b != "00:00:00:00:00:00" && (Convert.ToInt32(b[..2], 16) & 1) == 0;
         foreach (var a in AccessPoints)
-            if (a is null || !Id(a.Id) || !ids.Add(a.Id) || !networks.Contains(a.NetworkId) || a.Bssid is null ||
-                !Regex.IsMatch(a.Bssid, @"\A(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\z") || !bssids.Add(a.Bssid) ||
-                a.Bssid == "00:00:00:00:00:00" || (Convert.ToInt32(a.Bssid[..2], 16) & 1) != 0) Invalid();
+        {
+            if (a is null || !Id(a.Id) || !ids.Add(a.Id) || !networks.Contains(a.NetworkId) || !Bssid(a.Bssid)) Invalid();
+            if (a.Bssids is not null && (a.Bssids.Length is 0 or > 8 || a.Bssids[0] != a.Bssid)) Invalid();
+            foreach (var b in a.AllBssids) if (!Bssid(b) || !bssids.Add(b)) Invalid();
+        }
     }
     public bool EquivalentTo(SchoolConfig other) => SchemaVersion == other.SchemaVersion && Version == other.Version &&
         Networks.OrderBy(n => n.Id, StringComparer.Ordinal).SequenceEqual(other.Networks.OrderBy(n => n.Id, StringComparer.Ordinal)) &&

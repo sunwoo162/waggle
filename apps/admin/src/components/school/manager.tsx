@@ -330,6 +330,7 @@ export function SchoolManager({
                 <strong>{a.name}</strong>
                 <span>{networkById.get(a.networkId)?.name}</span>
                 <code>{a.bssid}</code>
+                {a.extraBssids.length > 0 && <span>외 BSSID {a.extraBssids.length}개</span>}
               </div>
               <div className="school-location">
                 <span>{[a.building, a.floor].filter(Boolean).join(" · ") || "위치 미등록"}</span>

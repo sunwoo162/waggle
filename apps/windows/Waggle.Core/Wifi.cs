@@ -30,7 +30,7 @@ public static class WifiMatch
     public static ApConfig? ConnectedAp(SchoolConfig config, ConnectedWifi? connection)
     {
         if (connection is null || connection.Quality is < 0 or > 100) return null;
-        var ap = config.AccessPoints.FirstOrDefault(a => a.Bssid == connection.Bssid);
+        var ap = config.AccessPoints.FirstOrDefault(a => a.AllBssids.Contains(connection.Bssid));
         if (ap is null) return null;
         var network = config.Networks.FirstOrDefault(n => n.Id == ap.NetworkId);
         return network is not null && network.Ssid == connection.Ssid && network.Security == connection.Security ? ap : null;

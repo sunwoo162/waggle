@@ -20,6 +20,8 @@ export type AccessPoint = {
   networkId: string;
   name: string;
   bssid: string;
+  /** Other BSSIDs of the same physical AP (e.g. another band). The character belongs to the whole AP. */
+  extraBssids: string[];
   building: string;
   floor: string;
   place: string;

@@ -61,6 +61,19 @@ class CoreTest {
     }
 
     @Test
+    fun anyBssidOfAPhysicalApMatchesTheSameCharacter() {
+        val dual = config.copy(accessPoints = listOf(ApConfig(ap, room1, "02:00:00:00:00:01", listOf("02:00:00:00:00:01", "02:00:00:00:00:02"))))
+        dual.validate()
+        assertEquals(ap, WifiMatch.connectedAp(dual, ObservedConnection("\"GSM-3-1\"", "02:00:00:00:00:02", WifiMatch.SECURITY_PSK))?.id)
+        assertNull(WifiMatch.connectedAp(dual, ObservedConnection("\"GSM-3-1\"", "02:00:00:00:00:03", WifiMatch.SECURITY_PSK)))
+        assertTrue(dual.acceptsUpdate(dual.copy()))
+        val legacy = config.copy(accessPoints = listOf(ApConfig(ap, room1, "02:00:00:00:00:01")))
+        assertTrue(legacy.acceptsUpdate(legacy.copy(accessPoints = listOf(ApConfig(ap, room1, "02:00:00:00:00:01", listOf("02:00:00:00:00:01"))))))
+        for (bad in listOf(listOf("02:00:00:00:00:09", "02:00:00:00:00:01"), listOf("02:00:00:00:00:01", "02:00:00:00:00:01"), emptyList()))
+            assertThrows(InvalidSchoolConfig::class.java) { dual.copy(accessPoints = listOf(ApConfig(ap, room1, "02:00:00:00:00:01", bad))).validate() }
+    }
+
+    @Test
     fun suggestionsCoverEveryRoomAndTurningOffRemovesOnlyOurs() {
         val desired = SuggestionPlan.desired(config)
         assertEquals(listOf("GSM-3-1" to "wpa2-personal", "GSM-3-2" to "open"), desired.map { it.key })
