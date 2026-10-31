@@ -30,22 +30,35 @@ class MemberApi(private val origin: String) {
     fun login(code: String, deviceName: String): TokenPair {
         if (code.isBlank() || code.length > 128 || deviceName.isBlank() || deviceName.length > 64) throw WaggleException(Failure.InvalidInput)
         val body = """{"code":${quote(code.trim())},"platform":"android","deviceName":${quote(deviceName.trim())}}"""
-        return json.decodeFromString<TokenPair>(send("code-login", body, null))
+        return decode { json.decodeFromString<TokenPair>(send("code-login", body, null)) }
     }
 
     fun refresh(refreshToken: String): TokenPair =
-        json.decodeFromString<TokenPair>(send("refresh", """{"refreshToken":${quote(refreshToken)}}""", null))
+        decode { json.decodeFromString<TokenPair>(send("refresh", """{"refreshToken":${quote(refreshToken)}}""", null)) }
 
     fun logout(refreshToken: String) {
         send("logout", """{"refreshToken":${quote(refreshToken)}}""", null)
     }
 
     fun config(accessToken: String): SchoolConfig =
-        json.decodeFromString<SchoolConfig>(send("config", null, accessToken, 1024 * 1024)).validate()
+        decode { json.decodeFromString<SchoolConfig>(send("config", null, accessToken, 1024 * 1024)).validate() }
 
     fun requestWifi(accessToken: String, room: String, ssid: String, security: String, password: String) {
         val body = """{"room":${quote(room.trim())},"ssid":${quote(ssid)},"security":${quote(security)},"password":${quote(password)}}"""
-        if (json.decodeFromString<Receipt>(send("wifi-requests", body, accessToken, 4096)).status != "received") throw WaggleException(Failure.InvalidResponse)
+        if (decode { json.decodeFromString<Receipt>(send("wifi-requests", body, accessToken, 4096)) }.status != "received") throw WaggleException(Failure.InvalidResponse)
+    }
+
+    /** Malformed or unsafe server data becomes a typed failure instead of an unhandled exception. */
+    private fun <T> decode(read: () -> T): T = try {
+        read()
+    } catch (error: WaggleException) {
+        throw error
+    } catch (_: kotlinx.serialization.SerializationException) {
+        throw WaggleException(Failure.InvalidResponse)
+    } catch (_: IllegalArgumentException) {
+        throw WaggleException(Failure.InvalidResponse)
+    } catch (_: app.waggle.android.core.InvalidSchoolConfig) {
+        throw WaggleException(Failure.InvalidResponse)
     }
 
     private fun quote(value: String) = kotlinx.serialization.json.JsonPrimitive(value).toString()

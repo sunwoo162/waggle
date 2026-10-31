@@ -1,6 +1,8 @@
 package app.waggle.android
 
 import android.content.Context
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.glance.Button
 import androidx.glance.GlanceId
@@ -32,8 +34,9 @@ import kotlinx.coroutines.launch
 /** Home screen widget: the Waggle character asleep (off) or awake (on), and one button. Nothing else. */
 class WaggleWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = WaggleController.get(context).state.value
+        val controller = WaggleController.get(context)
         provideContent {
+            val state by controller.state.collectAsState()
             GlanceTheme {
                 Column(
                     modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.widgetBackground).cornerRadius(16.dp).padding(8.dp),
@@ -64,8 +67,7 @@ class WaggleWidget : GlanceAppWidget() {
 
 class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val controller = WaggleController.get(context)
-        if (controller.state.value.on) controller.turnOff() else controller.turnOn()
+        WaggleController.get(context).toggle()
     }
 }
 

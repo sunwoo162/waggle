@@ -17,12 +17,12 @@ class Suggestions(context: Context) {
         val ok get() = status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS
     }
 
-    fun apply(desired: List<SuggestionSpec>): Result {
+    /** [replace]: rooms whose security type changed, whose old suggestion must go before the new one is added. */
+    fun apply(desired: List<SuggestionSpec>, replace: Set<String> = emptySet()): Result {
         val built = desired.mapNotNull { spec -> runCatching { build(spec) }.getOrNull() }
         val wanted = desired.associate { it.ssid to (it.security != "open") }
-        // Remove ours that are no longer in the school config (or changed between open and secured);
-        // re-adding the rest updates passwords in place.
-        val stale = wifi.networkSuggestions.filter { wanted[ssidOf(it)] != (it.passphrase != null) }
+        // Remove ours that are no longer in the school config or changed security; re-adding the rest updates passwords in place.
+        val stale = wifi.networkSuggestions.filter { ssidOf(it) in replace || wanted[ssidOf(it)] != (it.passphrase != null) }
         if (stale.isNotEmpty()) wifi.removeNetworkSuggestions(stale)
         val status = if (built.isEmpty()) WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS else wifi.addNetworkSuggestions(built)
         val ok = status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS
@@ -40,6 +40,8 @@ class Suggestions(context: Context) {
     fun registeredCount(): Int = wifi.networkSuggestions.size
 
     private fun build(spec: SuggestionSpec): WifiNetworkSuggestion {
+        // The suggestion API takes an 8-63 character passphrase only; a 64-hex raw key would fail the whole batch.
+        require(spec.password == null || spec.password.length in 8..63)
         val builder = WifiNetworkSuggestion.Builder().setSsid(spec.ssid).setIsAppInteractionRequired(false)
             // Students should not read room passwords from the system Wi-Fi list.
             .setCredentialSharedWithUser(false)

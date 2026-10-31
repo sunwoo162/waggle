@@ -11,6 +11,7 @@ import android.service.quicksettings.TileService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /** Quick Settings toggle: empty Wi-Fi icon when off, filled when on. Colors come from the system. */
@@ -23,15 +24,18 @@ class WaggleTileService : TileService() {
         val controller = WaggleController.get(this)
         val state = controller.state.value
         // The first OS approval of Wi-Fi suggestions must happen with the app on screen.
-        if (!state.signedIn || !state.approved) return openApp()
-        val toggle = {
-            scope.launch {
-                if (controller.state.value.on) controller.turnOff() else controller.turnOn()
-                render()
-            }
+        if (!state.signedIn || !state.approved) {
+            if (isLocked) unlockAndRun { openApp() } else openApp()
+            return
         }
+        val toggle = { scope.launch { controller.toggle(); render() } }
         // Turning off removes school Wi-Fi: require unlock on the lock screen.
         if (isLocked && state.on) unlockAndRun { toggle() } else toggle()
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
     private fun render() {

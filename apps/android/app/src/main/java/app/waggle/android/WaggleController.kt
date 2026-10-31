@@ -1,6 +1,7 @@
 package app.waggle.android
 
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.os.Build
 import app.waggle.android.core.Failure
 import app.waggle.android.core.SchoolConfig
@@ -11,6 +12,7 @@ import app.waggle.android.data.MemberApi
 import app.waggle.android.data.SecureStore
 import app.waggle.android.data.TokenPair
 import app.waggle.android.wifi.Suggestions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +27,7 @@ data class WaggleState(
     val on: Boolean = false,
     val rooms: Int = 0,
     val lastSync: Long? = null,
-    /** The OS has approved this app's Wi-Fi suggestions at least once (first approval needs the app on screen). */
+    /** The OS has approved this app's Wi-Fi suggestions (the first approval needs the app on screen). */
     val approved: Boolean = false,
     val busy: Boolean = false,
     val message: String? = null,
@@ -33,7 +35,7 @@ data class WaggleState(
 
 /**
  * App-wide state for the one toggle. Turning on registers every room with the OS and nothing keeps running;
- * the OS connects by itself afterwards. All network and Keystore work runs off the main thread, one at a time.
+ * the OS connects by itself afterwards. Network and Keystore work runs off the main thread, one action at a time.
  */
 class WaggleController private constructor(private val context: Context) {
     private val store = SecureStore(context)
@@ -44,11 +46,12 @@ class WaggleController private constructor(private val context: Context) {
     private val mutable = MutableStateFlow(load())
     val state: StateFlow<WaggleState> = mutable
 
+    /** Plain preferences only: safe to call on the main thread (no Keystore decryption). */
     private fun load() = WaggleState(
-        signedIn = store.get(SESSION) != null,
+        signedIn = store.has(SESSION),
         origin = prefs.getString(ORIGIN, null),
         on = prefs.getBoolean(ON, false),
-        rooms = config()?.networks?.size ?: 0,
+        rooms = prefs.getInt(ROOMS, 0),
         lastSync = prefs.getLong(SYNCED, 0).takeIf { it > 0 },
         approved = prefs.getBoolean(APPROVED, false),
     )
@@ -66,29 +69,38 @@ class WaggleController private constructor(private val context: Context) {
 
     suspend fun sync() = run("학교 Wi-Fi 목록을 갱신했어요.") { syncCore() }
 
+    /** Decides on/off inside the lock so quick double taps never run the same action twice. */
+    suspend fun toggle() = if (lock.withLock { prefs.getBoolean(ON, false) }) turnOff() else turnOn()
+
     suspend fun turnOn() = run("켜졌어요. 학교 Wi-Fi에 비밀번호 없이 자동으로 연결돼요.") {
         if (session() == null) throw WaggleException(Failure.Unauthorized)
-        runCatching { syncCore(apply = false) }
+        try {
+            syncCore(applyIfOn = false)
+        } catch (error: WaggleException) {
+            // Offline at the moment: turning on still works with the last verified school config.
+            if (error.failure !in setOf(Failure.Offline, Failure.Unavailable)) throw error
+        }
         val config = config() ?: throw WaggleException(Failure.Unavailable)
-        val result = suggestions.apply(SuggestionPlan.desired(config))
-        if (!result.ok) throw WaggleException(Failure.Storage)
         prefs.edit().putBoolean(ON, true).apply()
+        reconcile(config)
         SyncWorker.schedule(context)
     }
 
     suspend fun turnOff() = run("꺼졌어요. 와글이 등록한 학교 Wi-Fi를 지웠어요.") {
-        suggestions.removeAll()
         prefs.edit().putBoolean(ON, false).apply()
+        suggestions.removeAll()
         SyncWorker.cancel(context)
     }
 
     suspend fun logout() = run("로그아웃했어요.") {
-        suggestions.removeAll()
+        prefs.edit().putBoolean(ON, false).apply()
+        // Local cleanup must finish even if the OS refuses the removal or the server is unreachable.
+        runCatching { suggestions.removeAll() }
         SyncWorker.cancel(context)
         val origin = prefs.getString(ORIGIN, null)
         session()?.let { pair -> origin?.let { runCatching { MemberApi(it).logout(pair.refreshToken) } } }
         store.clear()
-        prefs.edit().remove(ON).remove(SYNCED).remove(APPROVED).apply()
+        prefs.edit().clear().apply()
     }
 
     suspend fun requestWifi(room: String, ssid: String, security: String, password: String) =
@@ -99,17 +111,32 @@ class WaggleController private constructor(private val context: Context) {
     fun markApproved(approved: Boolean) {
         prefs.edit().putBoolean(APPROVED, approved).apply()
         mutable.value = mutable.value.copy(approved = approved)
+        WaggleWidget.refresh(context)
+        WaggleTileService.refresh(context)
     }
 
-    /** New config versions replace the stored one (never older or silently changed), and update suggestions while on. */
-    private suspend fun syncCore(apply: Boolean = true) {
+    /** Replaces the stored config with a newer verified one, then (while on) makes the OS match it. */
+    private fun syncCore(applyIfOn: Boolean = true) {
         val next = authorized { api, token -> api.config(token) }
         val current = config()
         if (current != null && !current.acceptsUpdate(next)) throw WaggleException(Failure.InvalidResponse)
         store.put(CONFIG, json.encodeToString(SchoolConfig.serializer(), next))
-        prefs.edit().putLong(SYNCED, System.currentTimeMillis()).apply()
-        if (apply && prefs.getBoolean(ON, false) && (current == null || next.version != current.version))
-            suggestions.apply(SuggestionPlan.desired(next))
+        prefs.edit().putLong(SYNCED, System.currentTimeMillis()).putInt(ROOMS, next.networks.size).apply()
+        if (applyIfOn && prefs.getBoolean(ON, false)) reconcile(next, previous = current)
+    }
+
+    /**
+     * Every sync while on re-registers the full set: re-adding updates passwords in place, and suggestions the OS
+     * dropped (e.g. after a network settings reset) come back. Rooms whose security type changed are replaced.
+     */
+    private fun reconcile(config: SchoolConfig, previous: SchoolConfig? = config) {
+        val changedSecurity = previous?.networks.orEmpty().filter { old ->
+            config.networks.any { it.ssid == old.ssid && it.security != old.security }
+        }.map { it.ssid }.toSet()
+        val result = suggestions.apply(SuggestionPlan.desired(config), replace = changedSecurity)
+        if (result.status == WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_APP_DISALLOWED) markApproved(false)
+        if (!result.ok) throw WaggleException(Failure.Storage)
+        prefs.edit().putInt(SKIPPED, result.skipped).apply()
     }
 
     /** Access tokens live 15 minutes: refresh once on 401, rotating the stored refresh token. */
@@ -134,13 +161,20 @@ class WaggleController private constructor(private val context: Context) {
 
     private suspend fun run(done: String, action: suspend () -> Unit) = lock.withLock {
         mutable.value = mutable.value.copy(busy = true, message = null)
-        val message = try {
-            withContext(Dispatchers.IO) { action() }
-            done
-        } catch (error: WaggleException) {
-            messageFor(error.failure)
-        } catch (_: SecurityException) {
-            "Wi-Fi 변경 권한이 꺼져 있어요. 설정 → 앱 → 특별한 앱 접근 → Wi-Fi 제어에서 와글을 허용해주세요."
+        val message = withContext(Dispatchers.IO) {
+            try {
+                action()
+                val skipped = prefs.getInt(SKIPPED, 0)
+                if (skipped > 0 && prefs.getBoolean(ON, false)) "$done (Android에서 지원하지 않는 키 형식의 Wi-Fi ${skipped}곳은 등록하지 못했어요.)" else done
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: WaggleException) {
+                messageFor(error.failure)
+            } catch (_: SecurityException) {
+                "Wi-Fi 변경 권한이 꺼져 있어요. 설정 → 앱 → 특별한 앱 접근 → Wi-Fi 제어에서 와글을 허용해주세요."
+            } catch (_: Exception) {
+                "처리하지 못했어요. 잠시 후 다시 시도해주세요."
+            }
         }
         mutable.value = load().copy(message = message)
         WaggleWidget.refresh(context)
@@ -163,6 +197,8 @@ class WaggleController private constructor(private val context: Context) {
         private const val ORIGIN = "origin"
         private const val ON = "on"
         private const val SYNCED = "synced"
+        private const val ROOMS = "rooms"
+        private const val SKIPPED = "skipped"
         private const val APPROVED = "approved"
 
         @Volatile private var instance: WaggleController? = null

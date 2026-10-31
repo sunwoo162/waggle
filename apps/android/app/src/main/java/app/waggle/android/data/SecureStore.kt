@@ -17,6 +17,9 @@ import javax.crypto.spec.GCMParameterSpec
 class SecureStore(context: Context) {
     private val prefs = context.getSharedPreferences("waggle.secure", Context.MODE_PRIVATE)
 
+    /** Presence only, without decrypting (safe on the main thread). */
+    fun has(name: String): Boolean = prefs.contains(name)
+
     fun get(name: String): String? {
         val stored = prefs.getString(name, null) ?: return null
         return runCatching {
