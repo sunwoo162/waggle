@@ -4,7 +4,7 @@ public sealed record WifiInterface(Guid Id, string Name, bool Busy = false);
 public sealed record ConnectedWifi(string? Ssid, string Bssid, string Security, int Quality);
 public sealed record WifiCandidate(string Ssid, string Bssid, bool Secured, int Quality, DateTimeOffset LastSeen);
 public sealed record WifiObservation(ConnectedWifi? Connection, WifiCandidate[] Candidates, bool Busy = false);
-public sealed record WifiTarget(string ApId, NetworkConfig Network, string Bssid, int Quality);
+public sealed record WifiTarget(string NetworkId, NetworkConfig Network, string Bssid, int Quality);
 public enum WifiAction { Keep, Wait, Connect }
 public enum WifiReason { NormalConnection, ForeignConnection, WeakConnection, NoCandidate, Cooldown, PendingConnection, AdapterBusy }
 public sealed record WifiDecision(WifiAction Action, WifiReason Reason, WifiTarget? Target = null);
@@ -24,6 +24,9 @@ public interface IWifiAdapter : IDisposable
 }
 public static class WifiMatch
 {
+    // Connection management is by room network (SSID + security); BSSIDs only matter for characters.
+    public static NetworkConfig? ConnectedNetwork(SchoolConfig config, ConnectedWifi? connection) =>
+        connection is null || connection.Quality is < 0 or > 100 ? null : config.Networks.Where(n => n.Ssid == connection.Ssid && n.Security == connection.Security).Take(2).ToArray() is [var only] ? only : null;
     public static ApConfig? ConnectedAp(SchoolConfig config, ConnectedWifi? connection)
     {
         if (connection is null || connection.Quality is < 0 or > 100) return null;

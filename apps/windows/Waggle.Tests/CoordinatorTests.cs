@@ -49,6 +49,14 @@ public sealed class CoordinatorTests
         Assert.AreEqual(0, f.Wifi.Requests); Assert.IsFalse(f.Client.ManagementRequested);
     }
     [TestMethod]
+    public async Task SsidOnlyRoomsStartManagementAndRequestAnotherRoom()
+    {
+        var f = await Setup(); f.Api.Config = WifiPolicyTests.Rooms with { Version = 2 }; f.Api.Catalog = new(1, 2, []);
+        f.Wifi.Observation = new(null, [new("GSM-3-2", "02:bb:00:00:00:07", true, 80, WifiPolicyTests.Now)]);
+        await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
+        Assert.IsTrue(f.Client.ManagementRequested); Assert.AreEqual(1, f.Wifi.Requests);
+    }
+    [TestMethod]
     public async Task AcceptedRequestNeverCollectsUntilOsReportsTheActualAp()
     {
         var f = await Setup(); f.Wifi.Observation = WifiPolicyTests.Observation() with { Connection = null };
