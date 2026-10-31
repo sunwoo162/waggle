@@ -66,7 +66,8 @@ public partial class MainWindow : Window
     private async void LogoutClicked(object sender, RoutedEventArgs e) => await RunAsync(async () =>
     {
         var remote = await client.LogoutAsync(closing.Token); ConsentInput.IsChecked = false; lastNotice = default;
-        Notice(remote ? "이 기기에서 로그아웃했어요." : "이 기기의 자료를 정리했어요. 서버 회수는 확인하지 못했으니 필요하면 운영자에게 기기 회수를 요청해주세요.");
+        Notice((remote ? "이 기기에서 로그아웃했어요." : "이 기기의 자료를 정리했어요. 서버 회수는 확인하지 못했으니 필요하면 운영자에게 기기 회수를 요청해주세요.") +
+            (client.ProfileCleanupPending ? " 등록한 학교 Wi-Fi는 지우지 못했어요. 다음에 와글을 열 때 다시 지울게요." : ""));
     });
     private async void TimerTick(object? sender, EventArgs e)
     {

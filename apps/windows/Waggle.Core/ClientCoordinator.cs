@@ -16,8 +16,8 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     private bool cleanupPending;
     // False after any failed server re-check; Wi-Fi work resumes only after a full successful refresh.
     private bool verified;
-    // Origin whose installed Wi-Fi profiles still need removal after a failed logout cleanup.
-    private string? profileOrigin;
+    // True when installed Wi-Fi profiles could not be removed; retried on the next login or restore.
+    public bool ProfileCleanupPending { get; private set; }
     public bool NeedsCleanup => cleanupPending || session.NeedsCleanup;
     public bool HasStoredSession => NeedsCleanup || session.HasStoredSession;
     public Identity? Identity => session.Current;
@@ -48,6 +48,12 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         if (error.Failure is not (WifiFailure.Unavailable or WifiFailure.RadioOff or WifiFailure.Busy)) { ManagementRequested = false; CancelManagement(); }
         Status = error.Failure is WifiFailure.Permission or WifiFailure.LocationPermission ? ClientStatus.PermissionRequired : ClientStatus.WifiUnavailable;
     }
+    // Removes installed profiles that no longer belong to a signed-in service. Never blocks sign-in.
+    private async Task SweepProfilesAsync(string? keep)
+    {
+        try { await wifi.RemoveProfilesExceptAsync(keep is null ? null : ServiceOrigin.Parse(keep), CancellationToken.None); ProfileCleanupPending = false; }
+        catch (Exception error) when (error is WifiException or OperationCanceledException or MemberException) { ProfileCleanupPending = true; }
+    }
     private async Task RefreshCoreAsync(CancellationToken ct)
     {
         RequireClean();
@@ -59,14 +65,19 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     public async Task LoginAsync(string origin, string code, string deviceName, CancellationToken ct)
     {
         await gate.WaitAsync(ct);
-        try { RequireClean(); await session.LoginAsync(origin, code, deviceName, ct); await RefreshCoreAsync(ct); }
+        try { RequireClean(); await session.LoginAsync(origin, code, deviceName, ct); await SweepProfilesAsync(session.Origin); await RefreshCoreAsync(ct); }
         catch (MemberException error) { MemberFailed(error); throw; }
         finally { gate.Release(); }
     }
     public async Task RestoreAsync(CancellationToken ct)
     {
         await gate.WaitAsync(ct);
-        try { RequireClean(); if (await session.RestoreAsync(ct) is not null) await RefreshCoreAsync(ct); else Status = ClientStatus.SignedOut; }
+        try
+        {
+            RequireClean();
+            if (await session.RestoreAsync(ct) is not null) { await SweepProfilesAsync(session.Origin); await RefreshCoreAsync(ct); }
+            else { await SweepProfilesAsync(null); Status = ClientStatus.SignedOut; }
+        }
         catch (MemberException error) { MemberFailed(error); throw; }
         finally { gate.Release(); }
     }
@@ -197,16 +208,12 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         try
         {
             CancelManagement(); ManagementRequested = Running = verified = false; Observation = null; LastObservationAt = null; NewlyCollectedApId = null; policy.Reset();
-            profileOrigin ??= session.Origin;
             var remote = false;
             try { remote = await session.LogoutAsync(CancellationToken.None); } catch (Exception) { /* Local cleanup below is always attempted. */ }
             var failed = session.NeedsCleanup || session.HasStoredSession;
             try { await configs.ClearAsync(CancellationToken.None); } catch { failed = true; }
             try { await collection.ClearAsync(CancellationToken.None); } catch { failed = true; }
-            if (profileOrigin is { } origin)
-            {
-                try { await wifi.RemoveProfilesAsync(ServiceOrigin.Parse(origin), CancellationToken.None); profileOrigin = null; } catch { failed = true; }
-            }
+            await SweepProfilesAsync(null);
             cleanupPending = failed; Status = failed ? ClientStatus.CleanupRequired : ClientStatus.SignedOut;
             if (failed) throw new MemberException(Failure.Storage);
             return remote;

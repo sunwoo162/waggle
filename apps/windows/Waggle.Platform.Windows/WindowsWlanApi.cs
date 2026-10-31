@@ -5,14 +5,24 @@ namespace Waggle.Platform.Windows;
 
 internal sealed class WindowsWlanApi : IWindowsWlanApi
 {
-    private readonly Lazy<SafeWlanHandle> handle = new(() =>
-    {
-        var status = NativeMethods.WlanOpenHandle(2, IntPtr.Zero, out var version, out var value);
-        if (status != 0 || value.IsInvalid || version < 2) { value.Dispose(); Check(status == 0 ? 50u : status); }
-        return value;
-    });
+    // Opened on first use and not cached on failure, so a stopped WLAN service can recover without restarting the app.
+    private SafeWlanHandle? handle;
+    private readonly Lock opening = new();
     private bool disposed;
-    private SafeWlanHandle Handle { get { ObjectDisposedException.ThrowIf(disposed, this); return handle.Value; } }
+    private SafeWlanHandle Handle
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            lock (opening)
+            {
+                if (handle is not null) return handle;
+                var status = NativeMethods.WlanOpenHandle(2, IntPtr.Zero, out var version, out var value);
+                if (status != 0 || value.IsInvalid || version < 2) { value.Dispose(); Check(status == 0 ? 50u : status); }
+                return handle = value;
+            }
+        }
+    }
     private static void Check(uint code, bool location = false, bool profile = false)
     {
         if (code == 0) return;
@@ -91,7 +101,7 @@ internal sealed class WindowsWlanApi : IWindowsWlanApi
         var status = NativeMethods.WlanDeleteProfile(Handle, ref id, name, IntPtr.Zero);
         if (status != 1168) Check(status); // ERROR_NOT_FOUND: already gone.
     }
-    public void Dispose() { disposed = true; if (handle.IsValueCreated) handle.Value.Dispose(); }
+    public void Dispose() { disposed = true; lock (opening) handle?.Dispose(); }
 }
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
 internal struct WlanConnectionParameters

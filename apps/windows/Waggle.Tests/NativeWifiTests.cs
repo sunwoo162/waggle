@@ -96,14 +96,16 @@ public sealed class NativeWifiTests
         return bytes;
     }
     [TestMethod]
-    public async Task LogoutRemovesOnlyThisServiceProfilesFromEveryAdapter()
+    public async Task RemovesOnlyWaggleProfilesExceptTheKeptService()
     {
         var origin = new Uri("https://waggle.example");
         var mine = WifiProfileBuilder.Build(origin, WifiPolicyTests.Config.Networks[0]).Name;
         var other = WifiProfileBuilder.Build(new("https://other.example"), WifiPolicyTests.Config.Networks[0]).Name;
         using var api = new Api { Profiles = [mine, "집 Wi-Fi", other] }; using var adapter = new NativeWifiAdapter(api);
-        await adapter.RemoveProfilesAsync(origin, default);
-        CollectionAssert.AreEqual(new[] { mine }, api.Deleted);
+        await adapter.RemoveProfilesExceptAsync(origin, default);
+        CollectionAssert.AreEqual(new[] { other }, api.Deleted);
+        api.Deleted.Clear(); await adapter.RemoveProfilesExceptAsync(null, default);
+        CollectionAssert.AreEqual(new[] { mine, other }, api.Deleted);
         CollectionAssert.AreEqual(new[] { mine, "집 Wi-Fi" }, NativeWifiBuffers.ProfileNames(ProfileList([mine, "집 Wi-Fi"])));
         var bad = ProfileList([mine]); U32(bad, 0, 2); Assert.Throws<WifiException>(() => NativeWifiBuffers.ProfileNames(bad));
     }

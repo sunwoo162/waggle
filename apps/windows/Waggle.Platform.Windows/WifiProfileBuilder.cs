@@ -10,6 +10,7 @@ internal sealed record WifiProfile(string Name, string Xml)
 }
 internal static class WifiProfileBuilder
 {
+    internal const string AppPrefix = "Waggle-";
     internal static string Prefix(Uri origin) => "Waggle-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(ServiceOrigin.Parse(origin.AbsoluteUri).AbsoluteUri)))[..12] + "-";
     internal static WifiProfile Build(Uri origin, NetworkConfig network)
     {

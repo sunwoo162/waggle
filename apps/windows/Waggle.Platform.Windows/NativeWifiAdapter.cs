@@ -37,11 +37,11 @@ public sealed class NativeWifiAdapter : IWifiAdapter
         ct.ThrowIfCancellationRequested();
         api.Connect(adapterId, profile.Name, NativeWifiBuffers.BssidPreference(bssid));
     }, ct);
-    public Task RemoveProfilesAsync(Uri origin, CancellationToken ct) => Task.Run(() =>
+    public Task RemoveProfilesExceptAsync(Uri? keep, CancellationToken ct) => Task.Run(() =>
     {
-        var prefix = WifiProfileBuilder.Prefix(origin);
+        var kept = keep is null ? null : WifiProfileBuilder.Prefix(keep);
         foreach (var adapter in NativeWifiBuffers.Interfaces(api.Interfaces()))
-            foreach (var name in NativeWifiBuffers.ProfileNames(api.ProfileList(adapter.Id)).Where(n => n.StartsWith(prefix, StringComparison.Ordinal)))
+            foreach (var name in NativeWifiBuffers.ProfileNames(api.ProfileList(adapter.Id)).Where(n => n.StartsWith(WifiProfileBuilder.AppPrefix, StringComparison.Ordinal) && (kept is null || !n.StartsWith(kept, StringComparison.Ordinal))))
             {
                 ct.ThrowIfCancellationRequested();
                 api.DeleteProfile(adapter.Id, name);
