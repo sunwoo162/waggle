@@ -179,7 +179,7 @@ public partial class MainWindow : Window
             ClearHistoryButton.IsEnabled = !busy && identity is not null && state?.History.Length > 0;
             HistoryText.Text = state?.History.Length > 0 ? string.Join("\n", state.History.TakeLast(6).Reverse().Select(e => DateTimeOffset.FromUnixTimeMilliseconds(e.At).ToLocalTime().ToString("HH:mm") + "  " + EventText(e.Kind) + (e.Ssid is null ? "" : " · " + e.Ssid))) : "아직 연결 기록이 없어요.";
             RenderCollection(state);
-            if (!stored || cleanup) CharacterDetail.Visibility = Visibility.Collapsed;
+            if (!stored || cleanup) CloseDetail();
         }
         finally { rendering = false; }
     }
@@ -196,12 +196,14 @@ public partial class MainWindow : Window
         GalleryRows.ItemsSource = cards.Values.OrderBy(c => c.Info.Name, StringComparer.Ordinal).ThenBy(c => c.Info.Id, StringComparer.Ordinal).Chunk(3).Select(row => new CharacterRow(row)).ToArray();
         GalleryEmptyText.Visibility = total == 0 ? Visibility.Visible : Visibility.Collapsed;
         GalleryEmptyText.Text = state is null ? "계정 상태를 다시 확인하면 친구들을 불러와요." : "아직 준비된 친구가 없어요. 잠시 후 다시 확인해주세요.";
-        if (CharacterDetail.DataContext is CharacterCard old && cards.TryGetValue(old.Info.Id, out var updated)) CharacterDetail.DataContext = updated;
+        var open = DetailSelection.Refresh(CharacterDetail.DataContext, cards);
+        if (open is null) CloseDetail(); else CharacterDetail.DataContext = open;
     }
     private static string EventText(LocalEventKind kind) => kind switch { LocalEventKind.Started => "자동 관리 시작", LocalEventKind.Paused => "일시 중지", LocalEventKind.Connected => "연결 확인", LocalEventKind.Requested => "연결 요청", LocalEventKind.Failed => "연결 요청 실패", LocalEventKind.TimedOut => "연결 확인 시간 초과", _ => "새 친구 수집" };
-    private void NavigateClicked(object sender, RoutedEventArgs e) { if (sender is Button { Tag: string selected }) { view = selected; CharacterDetail.Visibility = Visibility.Collapsed; Render(); } }
+    private void NavigateClicked(object sender, RoutedEventArgs e) { if (sender is Button { Tag: string selected }) { view = selected; CloseDetail(); Render(); } }
     private void CharacterClicked(object sender, RoutedEventArgs e) { if (sender is Button { DataContext: CharacterCard card }) { CharacterDetail.DataContext = card; CharacterDetail.Visibility = Visibility.Visible; } }
-    private void CloseDetailClicked(object sender, RoutedEventArgs e) => CharacterDetail.Visibility = Visibility.Collapsed;
+    private void CloseDetailClicked(object sender, RoutedEventArgs e) => CloseDetail();
+    private void CloseDetail() { CharacterDetail.Visibility = Visibility.Collapsed; CharacterDetail.DataContext = null; }
     private async void CharacterImageLoaded(object sender, RoutedEventArgs e) { if (sender is FrameworkElement { DataContext: CharacterCard card }) await LoadPictureAsync(card); }
     private async void CharacterImageContextChanged(object sender, DependencyPropertyChangedEventArgs e) { if (e.NewValue is CharacterCard card) await LoadPictureAsync(card); }
     private async Task LoadPictureAsync(CharacterCard card)
