@@ -99,12 +99,13 @@ public sealed class SessionTests
         public Encyclopedia Catalog = new(1, 0, []); public Collection Collection = new(1, []); public List<ConnectionReport> Reports = []; public bool RejectOldCatalog;
         public Identity Identity = ProtocolTests.Identity; public TokenPair Next = ProtocolTests.Pair with { AccessToken = "fresh.payload.signature", RefreshToken = new string('n', 32) };
         public bool Offline, Revoked, RejectOld, RejectOldConfig, RejectAllConfigs; public int Refreshes, Logins, ConfigRequests; public List<string> LoggedOut = [];
+        public bool Limited, CatalogOffline;
         void Guard() { if (Offline) throw new MemberException(Failure.Offline); if (Revoked) throw new MemberException(Failure.Unauthorized); }
         public Task<TokenPair> LoginAsync(string code, string name, CancellationToken ct) { Guard(); Logins++; return Task.FromResult(ProtocolTests.Pair); }
         public async Task<TokenPair> RefreshAsync(string token, CancellationToken ct) { Guard(); await Task.Yield(); Refreshes++; return Next; }
         public Task<Identity> MeAsync(string token, CancellationToken ct) { Guard(); if (RejectOld && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Identity); }
         public Task<SchoolConfig> GetSchoolConfigAsync(string token, CancellationToken ct) { Guard(); ConfigRequests++; if (RejectAllConfigs || RejectOldConfig && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Config); }
-        public Task<Encyclopedia> GetEncyclopediaAsync(string token, CancellationToken ct) { Guard(); if (RejectOldCatalog && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Catalog); }
+        public Task<Encyclopedia> GetEncyclopediaAsync(string token, CancellationToken ct) { Guard(); if (Limited) throw new MemberException(Failure.RateLimited); if (CatalogOffline) throw new MemberException(Failure.Offline); if (RejectOldCatalog && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Catalog); }
         public Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct) { Guard(); Reports.AddRange(reports); return Task.FromResult(Collection); }
         public Task LogoutAsync(string token, CancellationToken ct) { Guard(); LoggedOut.Add(token); return Task.CompletedTask; }
         public void Dispose() { }

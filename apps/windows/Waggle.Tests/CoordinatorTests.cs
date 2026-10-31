@@ -78,6 +78,31 @@ public sealed class CoordinatorTests
         Assert.IsTrue(f.Client.Running); Assert.AreEqual(2, f.Wifi.Observations);
     }
     [TestMethod]
+    public async Task FailedRevalidationKeepsWifiStoppedUntilAFullRefreshSucceeds()
+    {
+        var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
+        f.Wifi.Observation = WifiPolicyTests.Observation() with { Connection = null };
+        f.Api.CatalogOffline = true; f.Time.Advance(60);
+        await Assert.ThrowsAsync<MemberException>(() => f.Client.TickAsync(default));
+        f.Api.CatalogOffline = false;
+        for (var i = 0; i < 5; i++) { f.Time.Advance(10); await f.Client.TickAsync(default); }
+        Assert.AreEqual(1, f.Wifi.Observations); Assert.AreEqual(0, f.Wifi.Requests); Assert.AreEqual(ClientStatus.VerificationRequired, f.Client.Status);
+        f.Time.Advance(10); await f.Client.TickAsync(default);
+        Assert.IsTrue(f.Client.Running); Assert.AreEqual(2, f.Wifi.Observations);
+    }
+    [TestMethod]
+    public async Task RateLimitedRevalidationWaitsFullBackoffBeforeAnyWifiWork()
+    {
+        var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
+        f.Api.Limited = true; f.Time.Advance(60);
+        await Assert.ThrowsAsync<MemberException>(() => f.Client.TickAsync(default));
+        f.Api.Limited = false;
+        for (var i = 0; i < 29; i++) { f.Time.Advance(10); await f.Client.TickAsync(default); }
+        Assert.AreEqual(1, f.Wifi.Observations); Assert.AreEqual(0, f.Wifi.Requests);
+        f.Time.Advance(10); await f.Client.TickAsync(default);
+        Assert.IsTrue(f.Client.Running); Assert.AreEqual(2, f.Wifi.Observations);
+    }
+    [TestMethod]
     public async Task PauseCancelsSlowObservationBeforeItCanConnect()
     {
         var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);

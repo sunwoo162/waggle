@@ -14,6 +14,8 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     public bool ManagementRequested { get; private set; }
     public bool Running { get; private set; }
     private bool cleanupPending;
+    // False after any failed server re-check; Wi-Fi work resumes only after a full successful refresh.
+    private bool verified;
     public bool NeedsCleanup => cleanupPending || session.NeedsCleanup;
     public bool HasStoredSession => NeedsCleanup || session.HasStoredSession;
     public Identity? Identity => session.Current;
@@ -33,7 +35,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     private void CancelManagement() { try { Volatile.Read(ref management)?.Cancel(); } catch (ObjectDisposedException) { } }
     private void MemberFailed(MemberException error)
     {
-        LastFailure = error.Failure; Running = false;
+        LastFailure = error.Failure; Running = false; verified = false;
         nextRefresh = clock.GetUtcNow().AddSeconds(error.Failure == Failure.RateLimited ? 300 : 60);
         if (error.Failure is not (Failure.Offline or Failure.Unavailable or Failure.RateLimited) || !session.HasStoredSession) { ManagementRequested = false; CancelManagement(); }
         Status = NeedsCleanup || session.NeedsCleanup ? ClientStatus.CleanupRequired : session.HasStoredSession ? ClientStatus.VerificationRequired : ClientStatus.SignedOut;
@@ -49,7 +51,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         RequireClean();
         var school = await configs.SyncAsync(ct);
         await collection.RefreshAsync(school, ct);
-        nextRefresh = clock.GetUtcNow().AddSeconds(60); LastFailure = null;
+        nextRefresh = clock.GetUtcNow().AddSeconds(60); LastFailure = null; verified = true;
         if (!ManagementRequested) Status = ClientStatus.Ready;
     }
     public async Task LoginAsync(string origin, string code, string deviceName, CancellationToken ct)
@@ -130,9 +132,9 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         }
         if (lastTick is { } tick && now - tick < TimeSpan.FromSeconds(10)) return;
         lastTick = now; NewlyCollectedApId = null;
-        if (session.Current is null || configs.Current is null || now >= nextRefresh)
+        if (!verified || session.Current is null || configs.Current is null || now >= nextRefresh)
         {
-            if (!Running && now < nextRefresh) return;
+            if ((!verified || !Running) && now < nextRefresh) return;
             await RefreshCoreAsync(ct);
         }
         if (now < nextWifiRetry) return;
@@ -192,7 +194,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         await gate.WaitAsync();
         try
         {
-            CancelManagement(); ManagementRequested = Running = false; Observation = null; LastObservationAt = null; NewlyCollectedApId = null; policy.Reset();
+            CancelManagement(); ManagementRequested = Running = verified = false; Observation = null; LastObservationAt = null; NewlyCollectedApId = null; policy.Reset();
             var remote = false;
             try { remote = await session.LogoutAsync(CancellationToken.None); } catch (Exception) { /* Local cleanup below is always attempted. */ }
             var failed = session.NeedsCleanup || session.HasStoredSession;
