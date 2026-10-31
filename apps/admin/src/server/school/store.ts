@@ -9,7 +9,7 @@ import { CredentialCipher } from "./crypto";
 import { invalid, SchoolError, unavailable } from "./errors";
 
 const keyMarker = "waggle-school-storage-v1";
-function verify(database: Database.Database, cipher: CredentialCipher, expected = 4) {
+function verify(database: Database.Database, cipher: CredentialCipher, expected = 5) {
   if (database.pragma("user_version", { simple: true }) !== expected) unavailable();
   const row = database.prepare("SELECT key_check FROM school_meta WHERE id=1").get() as
     | { key_check: string }
@@ -50,25 +50,80 @@ function normalizeBssid(value: unknown, field: string): string {
     invalid(field, "유효한 AP BSSID를 입력해주세요.");
   return bssid;
 }
+// Operator action log: who, when, what kind of change and which record. Never values or secrets.
+function migrateAudit(database: Database.Database) {
+  database.exec(`
+    CREATE TABLE school_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, operator TEXT NOT NULL,
+      action TEXT NOT NULL, target TEXT NOT NULL
+    );
+    PRAGMA user_version=5;
+  `);
+}
+export type AuditEntry = { at: string; operator: string; action: string; target: string };
+/**
+ * Re-encrypts every stored secret with a new key in one transaction. The old key must open the store;
+ * afterwards only the new key does. Run while the admin server is stopped, then swap the environment key.
+ */
+export function rotateSchoolKey(database: Database.Database, oldKey: Buffer, newKey: Buffer) {
+  const from = new CredentialCipher(oldKey);
+  const to = new CredentialCipher(newKey);
+  if (oldKey.equals(newKey)) unavailable();
+  database
+    .transaction(() => {
+      verify(database, from);
+      const networks = database
+        .prepare("SELECT id,credential FROM school_network WHERE credential IS NOT NULL")
+        .all() as { id: string; credential: string }[];
+      const updateNetwork = database.prepare("UPDATE school_network SET credential=? WHERE id=?");
+      for (const n of networks)
+        updateNetwork.run(
+          to.seal(from.open(n.credential, `network:${n.id}`), `network:${n.id}`),
+          n.id,
+        );
+      const requests = database
+        .prepare("SELECT id,credential FROM school_wifi_request WHERE credential IS NOT NULL")
+        .all() as { id: string; credential: string }[];
+      const updateRequest = database.prepare(
+        "UPDATE school_wifi_request SET credential=? WHERE id=?",
+      );
+      for (const r of requests)
+        updateRequest.run(
+          to.seal(from.open(r.credential, `request:${r.id}`), `request:${r.id}`),
+          r.id,
+        );
+      database
+        .prepare("UPDATE school_meta SET key_check=? WHERE id=1")
+        .run(to.seal(keyMarker, "key-check"));
+    })
+    .immediate();
+}
 export function migrateSchoolDatabase(database: Database.Database, key: Buffer) {
   const cipher = new CredentialCipher(key);
   database.pragma("foreign_keys = ON");
   database
     .transaction(() => {
       const version = database.pragma("user_version", { simple: true });
-      if (version === 4) {
+      if (version === 5) {
         verify(database, cipher);
+        return;
+      }
+      if (version === 4) {
+        verify(database, cipher, 4);
+        migrateAudit(database);
         return;
       }
       if (version === 3) {
         verify(database, cipher, 3);
         migrateApBssids(database);
+        migrateAudit(database);
         return;
       }
       if (version === 2) {
         verify(database, cipher, 2);
         migrateWifiRequests(database);
         migrateApBssids(database);
+        migrateAudit(database);
         return;
       }
       if (version === 1) {
@@ -76,6 +131,7 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
         migrateCharacters(database);
         migrateWifiRequests(database);
         migrateApBssids(database);
+        migrateAudit(database);
         return;
       }
       if (
@@ -108,6 +164,7 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
       migrateCharacters(database);
       migrateWifiRequests(database);
       migrateApBssids(database, false);
+      migrateAudit(database);
     })
     .immediate();
 }
@@ -326,6 +383,26 @@ export class SchoolStore {
         return saved;
       })
       .immediate();
+  }
+  /** Best effort: the change it describes is already committed, so a logging failure must not become an error. */
+  audit(operator: string, action: string, target: string) {
+    try {
+      this.database
+        .prepare("INSERT INTO school_audit (at,operator,action,target) VALUES (?,?,?,?)")
+        .run(
+          new Date().toISOString(),
+          operator.slice(0, 80),
+          action.slice(0, 40),
+          target.slice(0, 80),
+        );
+    } catch {
+      // Intentionally ignored; see above.
+    }
+  }
+  auditLog(limit = 200): AuditEntry[] {
+    return this.database
+      .prepare("SELECT at,operator,action,target FROM school_audit ORDER BY id DESC LIMIT ?")
+      .all(Math.min(Math.max(limit, 1), 500)) as AuditEntry[];
   }
   submitWifiRequest(input: unknown): { status: "received" } {
     const v = object(input, ["room", "ssid", "security", "password"]);

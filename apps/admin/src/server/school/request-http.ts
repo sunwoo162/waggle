@@ -1,4 +1,5 @@
 import type { AdminAccess } from "../auth/access";
+import { requireRecentSignIn } from "../auth/recent";
 import { jsonPrivate as json, readJson } from "../http";
 import { clientRequest } from "../members/client-request";
 import type { MemberService } from "../members/service";
@@ -55,9 +56,12 @@ export function createWifiRequestAdminHandler(deps: {
         return json({ message: "허용되지 않은 요청 방식입니다." }, 405, { allow: "POST" });
       if (request.headers.get("origin") !== deps.origin())
         return json({ message: "같은 관리 사이트에서 요청해주세요." }, 403);
+      const stale = requireRecentSignIn(access);
+      if (stale) return stale;
       const store = deps.getStore();
       if (match[2] === "approve") store.approveWifiRequest(match[1]);
       else store.rejectWifiRequest(match[1]);
+      store.audit(access.user.id, `wifi-request.${match[2]}`, match[1]);
       return json({ requests: store.wifiRequests() });
     } catch (error) {
       return characterResponse(error);

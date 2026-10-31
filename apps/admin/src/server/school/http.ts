@@ -1,4 +1,5 @@
 import type { AdminAccess } from "../auth/access";
+import { requireRecentSignIn } from "../auth/recent";
 import { jsonPrivate as json, readJson } from "../http";
 import { SchoolError } from "./errors";
 import type { SchoolStore } from "./store";
@@ -30,6 +31,11 @@ export function createSchoolHandler(deps: {
       if (request.method === "GET") return json((await deps.getStore()).snapshot());
       if (request.headers.get("origin") !== deps.origin())
         return json({ message: "같은 관리 사이트에서 요청해주세요." }, 403);
+      // Checked before reading the body: password-bearing writes need a recent sign-in.
+      if (parts[0] === "networks") {
+        const stale = requireRecentSignIn(access);
+        if (stale) return stale;
+      }
       const body = await readJson(request);
       if ("error" in body)
         return json(
@@ -40,8 +46,13 @@ export function createSchoolHandler(deps: {
           body.error,
         );
       const store = await deps.getStore();
-      if (parts[0] === "networks") store.saveNetwork(body.value, parts[1]);
-      else store.saveAccessPoint(body.value, parts[1]);
+      if (parts[0] === "networks") {
+        const saved = store.saveNetwork(body.value, parts[1]);
+        store.audit(access.user.id, "network.save", saved.id);
+      } else {
+        const saved = store.saveAccessPoint(body.value, parts[1]);
+        store.audit(access.user.id, "ap.save", saved.id);
+      }
       return json(store.snapshot(), allowed === "POST" ? 201 : 200);
     } catch (error) {
       if (error instanceof SchoolError)

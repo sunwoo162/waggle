@@ -110,10 +110,10 @@ test("v3 학교 DB는 명시적 이전으로 기존 BSSID를 그대로 묶음 �
   const { db, key, store, ap } = setup();
   const saved = store.saveAccessPoint(ap);
   const before = store.snapshot();
-  db.exec("DROP TABLE school_ap_bssid; PRAGMA user_version=3;");
+  db.exec("DROP TABLE school_audit; DROP TABLE school_ap_bssid; PRAGMA user_version=3;");
   assert.throws(() => new SchoolStore(db, key));
   migrateSchoolDatabase(db, key);
-  assert.equal(db.pragma("user_version", { simple: true }), 4);
+  assert.equal(db.pragma("user_version", { simple: true }), 5);
   const reopened = new SchoolStore(db, key);
   assert.deepEqual(reopened.snapshot(), { ...before, version: before.version + 1 });
   assert.deepEqual(reopened.clientConfig().accessPoints[0].bssids, [saved.bssid]);

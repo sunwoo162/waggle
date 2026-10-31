@@ -27,7 +27,7 @@ function store() {
 
 test("등록 요청은 암호화해 보관하고 운영자 승인 전에는 앱 설정에 나오지 않는다", () => {
   const { db, store: s } = store();
-  assert.equal(db.pragma("user_version", { simple: true }), 4);
+  assert.equal(db.pragma("user_version", { simple: true }), 5);
   assert.deepEqual(s.submitWifiRequest(room), { status: "received" });
   const raw = JSON.stringify(db.prepare("SELECT * FROM school_wifi_request").all());
   assert.equal(raw.includes(room.password), false);
@@ -133,7 +133,11 @@ test("운영자 요청함은 인증·Origin을 확인하고 승인·거절한다
       getStore: () => s,
       origin: () => origin,
     });
-  const admin = make({ kind: "authorized", user: { id: "synthetic", name: "합성 운영자" } });
+  const admin = make({
+    kind: "authorized",
+    user: { id: "synthetic", name: "합성 운영자" },
+    signedInAt: Date.now(),
+  });
   assert.equal(
     (await make({ kind: "unauthenticated" })(new Request(`${origin}/api/admin/wifi-requests`)))
       .status,
