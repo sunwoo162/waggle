@@ -25,8 +25,8 @@ public partial class MainWindow : Window
     public MainWindow() : this(CreateClient()) { }
     public MainWindow(bool background) : this(CreateClient()) => this.background = background;
     // Started at Windows sign-in: load in the tray without showing the window.
-    public void StartInTray() { ShowInTaskbar = false; WindowState = WindowState.Minimized; Show(); Hide(); WindowState = WindowState.Normal; ShowInTaskbar = true; }
-    private void RememberAutoStart(Action change) { try { change(); } catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException) { } }
+    public void StartInTray() { ShowActivated = false; ShowInTaskbar = false; WindowState = WindowState.Minimized; Show(); Hide(); WindowState = WindowState.Normal; ShowInTaskbar = true; ShowActivated = true; }
+    private bool RememberAutoStart(Action change) { try { change(); return true; } catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException) { return false; } }
     public MainWindow(ClientCoordinator client, string? initialOrigin = null)
     {
         this.client = client; InitializeComponent();
@@ -45,8 +45,13 @@ public partial class MainWindow : Window
     {
         loaded = true; ticker.Start();
         await RunAsync(async () => { await client.RestoreAsync(closing.Token); if (client.Origin is { } origin) ServerInput.Text = origin; });
-        if (background && client.Identity is not null && autoStart.ResumeAdapter() is { } resume)
+        // At sign-in the PC is often still offline: resume whenever a session is stored; temporary failures retry on each tick.
+        if (background && client.HasStoredSession && autoStart.ResumeAdapter() is { } resume)
+        {
             await RunAsync(async () => { await client.StartAsync(resume, true, closing.Token); Notice("Windows 로그인과 함께 자동 관리를 다시 켰어요."); });
+            if (!client.ManagementRequested) tray.ResumeFailed();
+        }
+        else if (background && !client.HasStoredSession) RememberAutoStart(autoStart.Remove);
     }
     private async void LoginClicked(object sender, RoutedEventArgs e)
     {
@@ -57,7 +62,7 @@ public partial class MainWindow : Window
     private async void StartClicked(object sender, RoutedEventArgs e)
     {
         starting = true;
-        try { await RunAsync(async () => { if (AdapterInput.SelectedValue is not Guid id) throw new MemberException(Failure.InvalidInput); await client.StartAsync(id, ConsentInput.IsChecked == true, closing.Token); if (Environment.ProcessPath is { } exe) RememberAutoStart(() => autoStart.TurnedOn(id, exe)); Notice("자동 관리를 시작했어요. Windows에 로그인하면 와글이 트레이에서 자동으로 다시 켜져요."); }); }
+        try { await RunAsync(async () => { if (AdapterInput.SelectedValue is not Guid id) throw new MemberException(Failure.InvalidInput); await client.StartAsync(id, ConsentInput.IsChecked == true, closing.Token); var remembered = Environment.ProcessPath is { } exe && RememberAutoStart(() => autoStart.TurnedOn(id, exe)); Notice(remembered ? "자동 관리를 시작했어요. Windows에 로그인하면 와글이 트레이에서 자동으로 다시 켜져요." : "자동 관리를 시작했어요. Windows 로그인 시 자동 실행은 설정하지 못했어요."); }); }
         finally { starting = false; Render(); }
     }
     private async void PauseClicked(object sender, RoutedEventArgs e) => await PauseControlAsync();
@@ -65,7 +70,9 @@ public partial class MainWindow : Window
     {
         if (pausing || exiting) return;
         pausing = true; Render();
-        try { await client.PauseAsync(CancellationToken.None); RememberAutoStart(autoStart.TurnedOff); Notice("자동 관리를 일시 중지했어요. 현재 Wi-Fi 연결은 유지해요."); }
+        // Record the pause first so a failure below never resumes management at the next sign-in.
+        RememberAutoStart(autoStart.TurnedOff);
+        try { await client.PauseAsync(CancellationToken.None); Notice("자동 관리를 일시 중지했어요. 현재 Wi-Fi 연결은 유지해요."); }
         catch (Exception error) { ShowError(error); }
         finally { pausing = false; Render(); }
     }

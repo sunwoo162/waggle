@@ -140,6 +140,15 @@ public sealed class CoordinatorTests
         Assert.IsTrue(f.Client.Running);
     }
     [TestMethod]
+    public async Task ResumingWhileOfflineKeepsManagementRequestedAndRecoversLater()
+    {
+        var f = await Setup(); f.Api.Offline = true;
+        await Assert.ThrowsAsync<MemberException>(() => f.Client.StartAsync(NativeWifiTests.AdapterId, true, default));
+        Assert.IsTrue(f.Client.ManagementRequested); Assert.AreEqual(0, f.Wifi.Observations);
+        f.Api.Offline = false; f.Time.Advance(60); await f.Client.TickAsync(default);
+        Assert.IsTrue(f.Client.Running); Assert.AreEqual(1, f.Wifi.Observations);
+    }
+    [TestMethod]
     public async Task PauseCancelsSlowObservationBeforeItCanConnect()
     {
         var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);

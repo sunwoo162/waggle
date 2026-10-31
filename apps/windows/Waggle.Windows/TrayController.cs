@@ -20,6 +20,7 @@ internal sealed class TrayController : IDisposable
     }
     internal void Update(bool requested, string status) { pause.Enabled = requested; icon.Text = ("와글 · " + status)[..Math.Min(60, ("와글 · " + status).Length)]; }
     internal void BackgroundNotice() => icon.ShowBalloonTip(3000, "와글이 계속 관리하고 있어요", "트레이 아이콘을 두 번 누르면 다시 열 수 있어요. 종료는 트레이 메뉴에서 선택해주세요.", Forms.ToolTipIcon.Info);
+    internal void ResumeFailed() => icon.ShowBalloonTip(5000, "와글 자동 관리를 다시 켜지 못했어요", "트레이 아이콘을 두 번 눌러 상태를 확인해주세요. 인터넷이 연결되면 자동으로 다시 시도해요.", Forms.ToolTipIcon.Warning);
     internal void Collected(string name) => icon.ShowBalloonTip(3000, "새로운 친구를 만났어요", name + "와 친구가 됐어요.", Forms.ToolTipIcon.None);
     private static Icon CreateIcon()
     {
