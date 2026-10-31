@@ -109,7 +109,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
             var token = management.Token; token.ThrowIfCancellationRequested();
             AdapterId = adapterId; ManagementRequested = true; Running = false;
             await RefreshCoreAsync(token);
-            if (configs.Current is not { Config.Networks.Length: > 0, Config.AccessPoints.Length: > 0 }) throw new MemberException(Failure.InvalidInput);
+            if (configs.Current is not { Config.Networks.Length: > 0 }) throw new MemberException(Failure.InvalidInput);
             Interfaces = await wifi.InterfacesAsync(token);
             if (!Interfaces.Any(i => i.Id == adapterId)) throw new WifiException(WifiFailure.Unavailable);
             policy.Reset(); lastTick = null; nextScan = nextWifiRetry = DateTimeOffset.MinValue; lastBssid = null;
@@ -167,10 +167,9 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         }
         ct.ThrowIfCancellationRequested();
         var decision = policy.Decide(school.Config, observation, now); DecisionReason = decision.Reason;
-        if (policy.TimedOutApId is { } timedOut)
+        if (policy.TimedOutNetworkId is { } timedOut)
         {
-            var ap = school.Config.AccessPoints.FirstOrDefault(a => a.Id == timedOut);
-            var ssid = school.Config.Networks.FirstOrDefault(n => n.Id == ap?.NetworkId)?.Ssid;
+            var ssid = school.Config.Networks.FirstOrDefault(n => n.Id == timedOut)?.Ssid;
             await collection.LogAsync(LocalEventKind.TimedOut, ssid, now, ct);
         }
         Status = decision.Action == WifiAction.Wait ? ClientStatus.Connecting : ClientStatus.Managing;
@@ -184,7 +183,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         }
         catch (WifiException error) when (error.Failure is WifiFailure.ProfileRejected or WifiFailure.Unavailable or WifiFailure.Busy)
         {
-            policy.Failed(target.ApId, clock.GetUtcNow()); LastWifiFailure = error.Failure;
+            policy.Failed(target.Bssid, clock.GetUtcNow()); LastWifiFailure = error.Failure;
             await collection.LogAsync(LocalEventKind.Failed, target.Network.Ssid, clock.GetUtcNow(), ct);
         }
     }
