@@ -131,6 +131,9 @@ export function AccessPointEditor({
       name: fd.get("name"),
       networkId: fd.get("networkId"),
       bssid: fd.get("bssid"),
+      extraBssids: String(fd.get("extraBssids") || "")
+        .split(/[\s,]+/)
+        .filter(Boolean),
       building: fd.get("building"),
       floor: fd.get("floor"),
       place: fd.get("place"),
@@ -181,8 +184,23 @@ export function AccessPointEditor({
               spellCheck={false}
               aria-describedby="bssid-help"
             />
-            <small id="bssid-help">
-              실제 AP의 무선 식별자입니다. 여러 BSSID는 각각 등록합니다.
+            <small id="bssid-help">실제 AP의 대표 무선 식별자입니다.</small>
+          </label>
+          <label htmlFor="ap-extra-bssids">
+            같은 AP의 다른 BSSID (선택)
+            <textarea
+              id="ap-extra-bssids"
+              name="extraBssids"
+              rows={3}
+              defaultValue={point?.extraBssids.join("\n")}
+              placeholder="한 줄에 하나씩, 최대 7개"
+              autoComplete="off"
+              spellCheck={false}
+              aria-describedby="extra-bssids-help"
+            />
+            <small id="extra-bssids-help">
+              2.4GHz·5GHz처럼 한 장치가 여러 BSSID를 쓰면 여기에 적어주세요. 어느 BSSID로 연결해도
+              같은 캐릭터로 수집되고, AP를 교체하면 BSSID만 바꾸면 됩니다.
             </small>
           </label>
           <div className="school-field-note">

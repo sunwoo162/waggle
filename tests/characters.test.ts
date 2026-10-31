@@ -53,14 +53,14 @@ test("v1 학교 DB는 명시적으로 이전하고 키·AP·암호문을 보존�
   const credential = db.prepare("SELECT credential FROM school_network WHERE id=?").get(n.id);
   const before = school.snapshot();
   db.exec(
-    "DROP TABLE IF EXISTS school_wifi_request; DROP TABLE IF EXISTS school_character; DROP TABLE IF EXISTS school_art; PRAGMA user_version=1;",
+    "DROP TABLE IF EXISTS school_ap_bssid; DROP TABLE IF EXISTS school_wifi_request; DROP TABLE IF EXISTS school_character; DROP TABLE IF EXISTS school_art; PRAGMA user_version=1;",
   );
   assert.throws(() => new SchoolStore(db, key));
   assert.throws(() => migrateSchoolDatabase(db, randomBytes(32)));
   assert.equal(db.pragma("user_version", { simple: true }), 1);
   migrateSchoolDatabase(db, key);
   migrateSchoolDatabase(db, key);
-  assert.equal(db.pragma("user_version", { simple: true }), 3);
+  assert.equal(db.pragma("user_version", { simple: true }), 4);
   const reopened = new SchoolStore(db, key);
   assert.deepEqual(reopened.snapshot(), before);
   assert.deepEqual(
@@ -235,10 +235,10 @@ test("연결 보고는 현재 활성 AP·SSID·BSSID를 모두 확인하고 추�
 test("v2 학교 DB는 명시적 이전으로 등록 요청 표를 추가하고 기존 설정을 보존한다", () => {
   const { db, key, school } = setup();
   const before = school.snapshot();
-  db.exec("DROP TABLE school_wifi_request; PRAGMA user_version=2;");
+  db.exec("DROP TABLE school_ap_bssid; DROP TABLE school_wifi_request; PRAGMA user_version=2;");
   assert.throws(() => new SchoolStore(db, key));
   migrateSchoolDatabase(db, key);
-  assert.equal(db.pragma("user_version", { simple: true }), 3);
+  assert.equal(db.pragma("user_version", { simple: true }), 4);
   assert.deepEqual(new SchoolStore(db, key).snapshot(), before);
   db.close();
 });

@@ -10,8 +10,11 @@ data class NetworkConfig(val id: String, val ssid: String, val security: String,
     override fun toString() = "NetworkConfig [redacted]"
 }
 
+/** One physical AP (one character). [bssids] lists every BSSID of the device, main BSSID first; older servers omit it. */
 @Serializable
-data class ApConfig(val id: String, val networkId: String, val bssid: String)
+data class ApConfig(val id: String, val networkId: String, val bssid: String, val bssids: List<String>? = null) {
+    val allBssids: List<String> get() = bssids?.takeIf { it.isNotEmpty() } ?: listOf(bssid)
+}
 
 /** School configuration delivered to signed-in apps. Mirrors the Windows client's validation rules. */
 @Serializable
@@ -43,9 +46,11 @@ data class SchoolConfig(
         }
         val apIds = HashSet<String>()
         val bssids = HashSet<String>()
+        fun bssid(b: String) = Rules.BSSID.matches(b) && b != "00:00:00:00:00:00" && b.substring(0, 2).toInt(16) and 1 == 0
         for (a in accessPoints) {
-            if (!Rules.isId(a.id) || !apIds.add(a.id) || a.networkId !in ids || !Rules.BSSID.matches(a.bssid) || !bssids.add(a.bssid)) invalid()
-            if (a.bssid == "00:00:00:00:00:00" || a.bssid.substring(0, 2).toInt(16) and 1 != 0) invalid()
+            if (!Rules.isId(a.id) || !apIds.add(a.id) || a.networkId !in ids || !bssid(a.bssid)) invalid()
+            if (a.bssids != null && (a.bssids.isEmpty() || a.bssids.size > 8 || a.bssids[0] != a.bssid)) invalid()
+            for (b in a.allBssids) if (!bssid(b) || !bssids.add(b)) invalid()
         }
         return this
     }

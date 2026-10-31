@@ -9,7 +9,7 @@ import { CredentialCipher } from "./crypto";
 import { invalid, SchoolError, unavailable } from "./errors";
 
 const keyMarker = "waggle-school-storage-v1";
-function verify(database: Database.Database, cipher: CredentialCipher, expected = 3) {
+function verify(database: Database.Database, cipher: CredentialCipher, expected = 4) {
   if (database.pragma("user_version", { simple: true }) !== expected) unavailable();
   const row = database.prepare("SELECT key_check FROM school_meta WHERE id=1").get() as
     | { key_check: string }
@@ -28,25 +28,52 @@ function migrateWifiRequests(database: Database.Database) {
   `);
 }
 export type WifiRequest = WifiRequestItem;
+// Every BSSID of a physical AP (including its main BSSID) maps to that one AP and its one character.
+function migrateApBssids(database: Database.Database) {
+  database.exec(`
+    CREATE TABLE school_ap_bssid (bssid TEXT PRIMARY KEY, ap_id TEXT NOT NULL REFERENCES school_ap(id));
+    CREATE INDEX school_ap_bssid_ap ON school_ap_bssid(ap_id);
+    INSERT INTO school_ap_bssid SELECT bssid,id FROM school_ap;
+    PRAGMA user_version=4;
+  `);
+}
+function normalizeBssid(value: unknown, field: string): string {
+  if (typeof value !== "string") invalid(field, "유효한 AP BSSID를 입력해주세요.");
+  const bssid = value.trim().toLowerCase().replaceAll("-", ":");
+  if (
+    !/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(bssid) ||
+    Number.parseInt(bssid.slice(0, 2), 16) & 1 ||
+    bssid === "00:00:00:00:00:00"
+  )
+    invalid(field, "유효한 AP BSSID를 입력해주세요.");
+  return bssid;
+}
 export function migrateSchoolDatabase(database: Database.Database, key: Buffer) {
   const cipher = new CredentialCipher(key);
   database.pragma("foreign_keys = ON");
   database
     .transaction(() => {
       const version = database.pragma("user_version", { simple: true });
-      if (version === 3) {
+      if (version === 4) {
         verify(database, cipher);
+        return;
+      }
+      if (version === 3) {
+        verify(database, cipher, 3);
+        migrateApBssids(database);
         return;
       }
       if (version === 2) {
         verify(database, cipher, 2);
         migrateWifiRequests(database);
+        migrateApBssids(database);
         return;
       }
       if (version === 1) {
         verify(database, cipher, 1);
         migrateCharacters(database);
         migrateWifiRequests(database);
+        migrateApBssids(database);
         return;
       }
       if (
@@ -78,6 +105,7 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
         .run(cipher.seal(keyMarker, "key-check"));
       migrateCharacters(database);
       migrateWifiRequests(database);
+      migrateApBssids(database);
     })
     .immediate();
 }
@@ -183,10 +211,19 @@ export class SchoolStore {
         .prepare(`SELECT a.id,a.network_id AS networkId,a.name,a.bssid,a.building,a.floor,a.place,
         a.enabled,a.revision,a.updated_at AS updatedAt, (a.enabled=1 AND n.enabled=1) AS effectiveEnabled
         FROM school_ap a JOIN school_network n ON n.id=a.network_id ORDER BY a.building,a.floor,a.name,a.id`)
-        .all() as (Omit<AccessPoint, "enabled" | "effectiveEnabled" | "locationRegistered"> & {
+        .all() as (Omit<
+        AccessPoint,
+        "enabled" | "effectiveEnabled" | "locationRegistered" | "extraBssids"
+      > & {
         enabled: number;
         effectiveEnabled: number;
       })[];
+      const extras = new Map<string, string[]>();
+      for (const row of this.database
+        .prepare(`SELECT b.ap_id AS apId,b.bssid FROM school_ap_bssid b JOIN school_ap a ON a.id=b.ap_id
+          WHERE b.bssid<>a.bssid ORDER BY b.bssid`)
+        .all() as { apId: string; bssid: string }[])
+        extras.set(row.apId, [...(extras.get(row.apId) || []), row.bssid]);
       return {
         version: meta.version,
         networks: networks.map((n) => ({
@@ -196,6 +233,7 @@ export class SchoolStore {
         })),
         accessPoints: accessPoints.map((a) => ({
           ...a,
+          extraBssids: extras.get(a.id) || [],
           enabled: Boolean(a.enabled),
           effectiveEnabled: Boolean(a.effectiveEnabled),
           locationRegistered: Boolean(a.building && a.floor && a.place),
@@ -218,6 +256,11 @@ export class SchoolStore {
         JOIN school_network n ON n.id=a.network_id WHERE a.enabled=1 AND n.enabled=1 ORDER BY a.id LIMIT 5001`)
         .all() as ClientSchoolConfig["accessPoints"];
       if (networks.length > 500 || accessPoints.length > 5000) return unavailable();
+      const bssids = new Map<string, string[]>();
+      for (const row of this.database
+        .prepare("SELECT ap_id AS apId,bssid FROM school_ap_bssid ORDER BY bssid")
+        .all() as { apId: string; bssid: string }[])
+        bssids.set(row.apId, [...(bssids.get(row.apId) || []), row.bssid]);
       return {
         schemaVersion: 1 as const,
         version: meta.version,
@@ -230,7 +273,10 @@ export class SchoolStore {
           if (security !== "open" && !password) return unavailable();
           return { id, ssid, security, password };
         }),
-        accessPoints,
+        accessPoints: accessPoints.map((a) => ({
+          ...a,
+          bssids: [a.bssid, ...(bssids.get(a.id) || []).filter((b) => b !== a.bssid)],
+        })),
       };
     })();
   }
@@ -364,16 +410,19 @@ export class SchoolStore {
       "place",
       "enabled",
       "revision",
+      "extraBssids",
     ]);
     const networkId = text(v.networkId, "networkId", 80);
     const name = text(v.name, "name", 80);
-    const bssid = text(v.bssid, "bssid", 17).toLowerCase().replaceAll("-", ":");
-    if (
-      !/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(bssid) ||
-      Number.parseInt(bssid.slice(0, 2), 16) & 1 ||
-      bssid === "00:00:00:00:00:00"
-    )
-      invalid("bssid", "유효한 AP BSSID를 입력해주세요.");
+    const bssid = normalizeBssid(v.bssid, "bssid");
+    if (v.extraBssids !== undefined && (!Array.isArray(v.extraBssids) || v.extraBssids.length > 7))
+      invalid("extraBssids", "추가 BSSID는 7개까지 입력해주세요.");
+    const extraBssids = ((v.extraBssids as unknown[] | undefined) || []).map((b) =>
+      normalizeBssid(b, "extraBssids"),
+    );
+    const allBssids = [bssid, ...extraBssids];
+    if (new Set(allBssids).size !== allBssids.length)
+      invalid("extraBssids", "같은 BSSID를 두 번 입력했습니다.");
     const building = text(v.building, "building", 80, true);
     const floor = text(v.floor, "floor", 24, true);
     const place = text(v.place, "place", 120, true);
@@ -391,10 +440,16 @@ export class SchoolStore {
           );
         if (!this.database.prepare("SELECT id FROM school_network WHERE id=?").get(networkId))
           invalid("networkId", "등록된 네트워크를 선택해주세요.");
-        if (
-          this.database.prepare("SELECT id FROM school_ap WHERE bssid=? AND id<>?").get(bssid, apId)
-        )
-          throw new SchoolError("conflict", "이미 등록된 BSSID입니다.", "bssid");
+        const taken = this.database.prepare(
+          "SELECT 1 FROM school_ap_bssid WHERE bssid=? AND ap_id<>? UNION SELECT 1 FROM school_ap WHERE bssid=? AND id<>?",
+        );
+        for (const b of allBssids)
+          if (taken.get(b, apId, b, apId))
+            throw new SchoolError(
+              "conflict",
+              "다른 AP에 이미 등록된 BSSID입니다.",
+              b === bssid ? "bssid" : "extraBssids",
+            );
         this.database
           .prepare(`INSERT INTO school_ap VALUES (@id,@networkId,@name,@bssid,@building,@floor,@place,@enabled,@revision,@updatedAt)
         ON CONFLICT(id) DO UPDATE SET network_id=excluded.network_id,name=excluded.name,bssid=excluded.bssid,building=excluded.building,floor=excluded.floor,place=excluded.place,enabled=excluded.enabled,revision=excluded.revision,updated_at=excluded.updated_at`)
@@ -410,6 +465,9 @@ export class SchoolStore {
             revision: expected + 1,
             updatedAt: new Date().toISOString(),
           });
+        this.database.prepare("DELETE FROM school_ap_bssid WHERE ap_id=?").run(apId);
+        const add = this.database.prepare("INSERT INTO school_ap_bssid VALUES (?,?)");
+        for (const b of allBssids) add.run(b, apId);
         this.database.prepare("UPDATE school_meta SET version=version+1 WHERE id=1").run();
         const saved = this.snapshot().accessPoints.find((a) => a.id === apId);
         if (!saved) return unavailable();

@@ -5,5 +5,6 @@ export type ClientSchoolConfig = {
   schemaVersion: 1;
   version: number;
   networks: { id: string; ssid: string; security: Security; password: string | null }[];
-  accessPoints: { id: string; networkId: string; bssid: string }[];
+  /** `bssid` is the main BSSID (kept for older clients); `bssids` lists every BSSID of the physical AP. */
+  accessPoints: { id: string; networkId: string; bssid: string; bssids: string[] }[];
 };

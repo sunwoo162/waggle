@@ -44,6 +44,6 @@ object WifiMatch {
     fun connectedAp(config: SchoolConfig, connection: ObservedConnection?): ApConfig? {
         val network = connectedNetwork(config, connection) ?: return null
         val bssid = bssid(connection?.bssid) ?: return null
-        return config.accessPoints.firstOrNull { it.bssid == bssid && it.networkId == network.id }
+        return config.accessPoints.firstOrNull { bssid in it.allBssids && it.networkId == network.id }
     }
 }

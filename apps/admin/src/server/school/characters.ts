@@ -157,7 +157,8 @@ export class CharacterStore {
     const query =
       this.db.prepare(`SELECT a.id,(c.image_hash IS NOT NULL) AS published FROM school_ap a
       JOIN school_network n ON n.id=a.network_id LEFT JOIN school_character c ON c.ap_id=a.id
-      WHERE a.id=? AND n.ssid=? AND a.bssid=? AND a.enabled=1 AND n.enabled=1`);
+      JOIN school_ap_bssid b ON b.ap_id=a.id
+      WHERE a.id=? AND n.ssid=? AND b.bssid=? AND a.enabled=1 AND n.enabled=1`);
     for (const inputReport of value.reports) {
       const r = object(inputReport, ["apId", "ssid", "bssid"]);
       const row =
