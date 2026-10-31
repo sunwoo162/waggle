@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><AssemblyName>Waggle</AssemblyName><RootNamespace>Waggle.Windows</RootNamespace></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../Waggle.Core/Waggle.Core.csproj"/><ProjectReference Include="../Waggle.Security.Windows/Waggle.Security.Windows.csproj"/><Resource Include="Assets/Fonts/*.otf"/><Content Include="Assets/Fonts/OFL.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>disable</ImplicitUsings><AssemblyName>Waggle</AssemblyName><RootNamespace>Waggle.Windows</RootNamespace></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Waggle.Core/Waggle.Core.csproj"/><ProjectReference Include="../Waggle.Platform.Windows/Waggle.Platform.Windows.csproj"/><ProjectReference Include="../Waggle.Security.Windows/Waggle.Security.Windows.csproj"/><Resource Include="Assets/Fonts/*.otf"/><Content Include="Assets/Fonts/OFL.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

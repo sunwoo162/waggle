@@ -38,6 +38,19 @@ public sealed class MemberApi : IMemberApi
         var config = await SendAsync<SchoolConfig>("config", null, token, ct, 1024 * 1024);
         config.Validate(); return config;
     }
+    public async Task<Encyclopedia> GetEncyclopediaAsync(string token, CancellationToken ct)
+    {
+        var catalog = await SendAsync<Encyclopedia>("encyclopedia", null, token, ct, 4 * 1024 * 1024);
+        catalog.Validate(); return catalog;
+    }
+    public async Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct)
+    {
+        if (reports.Length > 100) throw new MemberException(Failure.InvalidInput);
+        foreach (var report in reports) report.Validate();
+        if (reports.Length > 0 && JsonSerializer.SerializeToUtf8Bytes(new { reports }, Json).Length > 16 * 1024) throw new MemberException(Failure.InvalidInput);
+        var collection = await SendAsync<Collection>("collection", reports.Length == 0 ? null : new { reports }, token, ct, 512 * 1024);
+        collection.Validate(); return collection;
+    }
     private async Task<T> SendAsync<T>(string path, object? body, string? bearer, CancellationToken ct, int maximumBytes = 65_536)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
