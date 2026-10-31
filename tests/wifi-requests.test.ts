@@ -158,3 +158,19 @@ test("운영자 요청함은 인증·Origin을 확인하고 승인·거절한다
   assert.equal(s.clientConfig().networks.length, 1);
   db.close();
 });
+
+test("꺼져 있는 같은 SSID 네트워크가 있어도 새 요청·승인으로 중복 등록하지 않는다", () => {
+  const { db, store: s } = store();
+  s.submitWifiRequest(room);
+  s.saveNetwork({
+    name: "꺼둔 실",
+    ssid: room.ssid,
+    security: "open",
+    password: "",
+    enabled: false,
+  });
+  assert.throws(() => s.submitWifiRequest(room), /conflict/);
+  assert.throws(() => s.approveWifiRequest(s.wifiRequests()[0].id), /conflict/);
+  assert.equal(s.snapshot().networks.length, 1);
+  db.close();
+});

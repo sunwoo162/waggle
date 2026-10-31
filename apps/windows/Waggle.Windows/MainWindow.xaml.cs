@@ -67,12 +67,11 @@ public partial class MainWindow : Window
         try
         {
             await client.RequestCurrentWifiAsync(RequestRoomInput.Text, RequestPasswordInput.Password, closing.Token);
-            RequestRoomInput.Text = ""; RequestPasswordInput.Clear();
+            RequestRoomInput.Text = "";
             Notice("등록 요청을 보냈어요. 운영자가 확인하면 다음 동기화 때 자동으로 연결돼요.");
         }
         catch (MemberException error) when (error.Failure is Failure.InvalidInput or Failure.Conflict or Failure.RateLimited)
         {
-            RequestPasswordInput.Clear();
             Notice(error.Failure switch
             {
                 Failure.Conflict => "이미 와글에 등록된 Wi-Fi예요.",
@@ -80,6 +79,7 @@ public partial class MainWindow : Window
                 _ => "실 이름과 비밀번호(영문·숫자·기호 8~63자)를 확인해주세요.",
             });
         }
+        finally { RequestPasswordInput.Clear(); }
     });
     private async void ClearHistoryClicked(object sender, RoutedEventArgs e) => await RunAsync(async () => { await client.ClearHistoryAsync(closing.Token); Notice("이 기기의 연결 기록을 비웠어요."); });
     private async void LogoutClicked(object sender, RoutedEventArgs e) => await RunAsync(async () =>

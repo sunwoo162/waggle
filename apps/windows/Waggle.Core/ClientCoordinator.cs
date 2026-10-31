@@ -39,7 +39,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     {
         LastFailure = error.Failure; Running = false; verified = false;
         nextRefresh = clock.GetUtcNow().AddSeconds(error.Failure == Failure.RateLimited ? 300 : 60);
-        if (error.Failure is not (Failure.Offline or Failure.Unavailable or Failure.RateLimited) || !session.HasStoredSession) { ManagementRequested = false; CancelManagement(); }
+        if (error.Failure is not (Failure.Offline or Failure.Unavailable or Failure.RateLimited or Failure.Conflict) || !session.HasStoredSession) { ManagementRequested = false; CancelManagement(); }
         Status = NeedsCleanup || session.NeedsCleanup ? ClientStatus.CleanupRequired : session.HasStoredSession ? ClientStatus.VerificationRequired : ClientStatus.SignedOut;
     }
     private void WifiFailed(WifiException error)

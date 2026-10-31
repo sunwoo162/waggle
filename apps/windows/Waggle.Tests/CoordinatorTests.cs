@@ -130,6 +130,16 @@ public sealed class CoordinatorTests
         Assert.IsFalse(f.Client.CanRequestCurrentWifi);
     }
     [TestMethod]
+    public async Task ServerConflictDuringRefreshKeepsManagementOnLikeOtherTemporaryFailures()
+    {
+        var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
+        f.Api.CollectionConflict = true; f.Time.Advance(60);
+        await Assert.ThrowsAsync<MemberException>(() => f.Client.TickAsync(default));
+        Assert.IsTrue(f.Client.ManagementRequested);
+        f.Api.CollectionConflict = false; f.Time.Advance(60); await f.Client.TickAsync(default);
+        Assert.IsTrue(f.Client.Running);
+    }
+    [TestMethod]
     public async Task PauseCancelsSlowObservationBeforeItCanConnect()
     {
         var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);

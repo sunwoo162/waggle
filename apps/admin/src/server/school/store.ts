@@ -295,10 +295,12 @@ export class SchoolStore {
             "unavailable",
             "확인을 기다리는 요청이 많습니다. 잠시 후 다시 요청해주세요.",
           );
-        if (
-          this.database.prepare("SELECT 1 FROM school_network WHERE ssid=? AND enabled=1").get(ssid)
-        )
-          throw new SchoolError("conflict", "이미 와글에 등록된 Wi-Fi입니다.", "ssid");
+        if (this.database.prepare("SELECT 1 FROM school_network WHERE ssid=?").get(ssid))
+          throw new SchoolError(
+            "conflict",
+            "이미 와글에 등록된 Wi-Fi입니다(꺼져 있다면 운영자가 다시 켤 수 있어요).",
+            "ssid",
+          );
         this.database
           .prepare("INSERT INTO school_wifi_request VALUES (?,?,?,?,?,?)")
           .run(
@@ -330,11 +332,7 @@ export class SchoolStore {
           | { room: string; ssid: string; security: Security; credential: string | null }
           | undefined;
         if (!row) throw new SchoolError("not_found", "요청을 찾을 수 없습니다.");
-        if (
-          this.database
-            .prepare("SELECT 1 FROM school_network WHERE ssid=? AND enabled=1")
-            .get(row.ssid)
-        )
+        if (this.database.prepare("SELECT 1 FROM school_network WHERE ssid=?").get(row.ssid))
           throw new SchoolError(
             "conflict",
             "같은 SSID가 이미 등록돼 있습니다. 요청을 거절해주세요.",
