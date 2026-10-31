@@ -515,8 +515,18 @@
 </tr>
 </tbody></table></div>
 <p>Android는 위치 권한 없이 SSID·BSSID가 가려질 수 있다. 권한이 부족하면 &quot;도감 수집을 위해 위치 권한이 필요합니다&quot;처럼 이유와 결과를 정확히 보여주고, 가려진 값으로 수집하지 않는다.</p>
-<h2 id="section-architecture-4">데이터와 개인정보</h2>
-<h3 id="section-architecture-5">8.1 서버가 저장하는 것</h3>
+<h3 id="section-architecture-4">7.1 Android 실현 방식</h3>
+<p>공식 문서 근거와 세부 흐름은 <a href="../research/2026-10-31-android-wifi-feasibility.md">Android Wi-Fi 실현 방식</a>에 정리했다. 요점:</p>
+<ul>
+<li><strong>등록</strong>: 활성 네트워크마다 SSID 단위 suggestion을 앱 화면에서 등록하고 OS 승인을 받는다. BSSID는 지정하지 않아 OS 로밍을 막지 않는다. 등록 성공을 연결 성공으로 표시하지 않는다.</li>
+<li><strong>관찰</strong>: NetworkCallback에 FLAG_INCLUDE_LOCATION_INFO를 붙여 연결된 Wi-Fi의 SSID·BSSID·보안 방식을 받는다. 정밀 위치 권한과 위치 설정이 필요하다. 가려진 값이면 수집하지 않는다.</li>
+<li><strong>화면 밖</strong>: 관리를 켜면 앱 화면에서 location 유형 포그라운드 서비스를 시작하고 상시 알림을 띄운다. 백그라운드 위치 권한은 요청하지 않는다. 프로세스가 끝나면 앱을 다시 열어야 한다.</li>
+<li><strong>하지 않음</strong>: 앱의 직접 스캔(백그라운드 30분 1회 제한), 품질 비교와 AP 전환, BSSID 지정 연결 요청, 사용자 저장 네트워크로 추가(ACTION_WIFI_ADD_NETWORKS는 앱이 이후 수정·삭제할 수 없음).</li>
+<li><strong>수집 경로 무관</strong>: 학생이 직접 저장한 학교 Wi-Fi로 붙어도 OS가 확인한 연결이 등록 AP와 같으면 수집한다.</li>
+<li><strong>제안 기준</strong>: 최소 Android 12(API 31), target 36. Android 11 이하는 지원하지 않는다.</li>
+</ul>
+<h2 id="section-architecture-5">데이터와 개인정보</h2>
+<h3 id="section-architecture-6">8.1 서버가 저장하는 것</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -552,19 +562,19 @@
 </tr>
 </tbody></table></div>
 <p>DataGSM 응답의 학급·기숙사 등 로그인에 필요 없는 학생 정보는 저장하지 않는다.</p>
-<h3 id="section-architecture-6">8.2 기기에만 저장하는 것</h3>
+<h3 id="section-architecture-7">8.2 기기에만 저장하는 것</h3>
 <ul>
 <li>현재 신호, 최근 검색 결과, 최근 연결 결과·실패 이유.</li>
 <li>오프라인용 승인된 설정, 서버로 보내지 않은 수집 보고.</li>
 <li>세션과 학교 접속정보는 OS 보안 저장소(Windows DPAPI, Android Keystore)에 보관한다.</li>
 </ul>
-<h3 id="section-architecture-7">8.3 수명주기 (제안)</h3>
+<h3 id="section-architecture-8">8.3 수명주기 (제안)</h3>
 <ul>
 <li><strong>졸업·자퇴</strong>: DataGSM 신규 로그인은 거부한다. 기존 계정은 학년 말에 운영자가 비활성화·삭제할 수 있다.</li>
 <li><strong>계정 삭제</strong>: 사용자가 내 계정에서 요청하거나 운영자가 실행한다. 로그인 수단·세션·수집 집합을 함께 삭제한다. 백업에 남은 기간은 운영 안내에 적는다.</li>
 <li><strong>회수의 한계</strong>: 코드·세션 회수는 와글 서비스 접근을 막을 뿐, 이미 OS에 저장된 학교 Wi-Fi 비밀번호를 무효화하지 않는다. 이를 화면에서 과장하지 않는다.</li>
 </ul>
-<aside class="doc-note fixed"><span>확정</span><p>등록 AP마다 캐릭터 하나를 두고 같은 내부 계정의 휴대폰·노트북에서 수집 상태를 공유합니다.</p></aside><h2 id="section-architecture-8">관계의 핵심</h2>
+<aside class="doc-note fixed"><span>확정</span><p>등록 AP마다 캐릭터 하나를 두고 같은 내부 계정의 휴대폰·노트북에서 수집 상태를 공유합니다.</p></aside><h2 id="section-architecture-9">관계의 핵심</h2>
 <ul>
 <li>사용자 한 명은 여러 기기 세션을 가질 수 있다.</li>
 <li>네트워크 하나에 여러 AP를 연결할 수 있다.</li>
@@ -573,7 +583,7 @@
 <li>내부 계정 하나에 로그인 수단을 종류별로 하나씩 연결할 수 있다.</li>
 <li>DB 제품·세부 스키마·인덱스·API 경로는 구현 계획에서 정한다.</li>
 </ul>
-</div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/04-architecture.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#architecture~section-architecture-1">구성별 책임</a><a class="level2" href="#architecture~section-architecture-2">정보 흐름</a><a class="level2" href="#architecture~section-architecture-3">플랫폼별 약속</a><a class="level2" href="#architecture~section-architecture-4">데이터와 개인정보</a><a class="level3" href="#architecture~section-architecture-5">8.1 서버가 저장하는 것</a><a class="level3" href="#architecture~section-architecture-6">8.2 기기에만 저장하는 것</a><a class="level3" href="#architecture~section-architecture-7">8.3 수명주기 (제안)</a><a class="level2" href="#architecture~section-architecture-8">관계의 핵심</a></nav></div><div class="reading-grid" data-page="api" id="page-api" hidden><article class="document"><header class="doc-header"><div class="eyebrow">API</div><h1>API 설계 메모</h1><p class="doc-summary">필요한 서버 동작의 목록입니다. 배포된 API 명세가 아닙니다.</p><div class="doc-meta"><span class="status-badge neutral">계약 미확정</span><span>2026.10.29 기준</span></div></header><div class="prose"><aside class="doc-note proposed"><span>설계 메모</span><p>URL·요청/응답 스키마·만료 시간·오류 코드의 상세 계약은 구현 계획에서 정합니다.</p></aside><h2 id="section-api-1">인증과 세션</h2>
+</div><footer class="doc-end"><a href="#home">← 프로젝트 홈</a><a href="pages/04-architecture.md">Markdown 원문 보기 ↗</a></footer></article><nav class="toc" aria-label="현재 문서 목차"><h2>이 문서에서</h2><a class="level2" href="#architecture~section-architecture-1">구성별 책임</a><a class="level2" href="#architecture~section-architecture-2">정보 흐름</a><a class="level2" href="#architecture~section-architecture-3">플랫폼별 약속</a><a class="level3" href="#architecture~section-architecture-4">7.1 Android 실현 방식</a><a class="level2" href="#architecture~section-architecture-5">데이터와 개인정보</a><a class="level3" href="#architecture~section-architecture-6">8.1 서버가 저장하는 것</a><a class="level3" href="#architecture~section-architecture-7">8.2 기기에만 저장하는 것</a><a class="level3" href="#architecture~section-architecture-8">8.3 수명주기 (제안)</a><a class="level2" href="#architecture~section-architecture-9">관계의 핵심</a></nav></div><div class="reading-grid" data-page="api" id="page-api" hidden><article class="document"><header class="doc-header"><div class="eyebrow">API</div><h1>API 설계 메모</h1><p class="doc-summary">필요한 서버 동작의 목록입니다. 배포된 API 명세가 아닙니다.</p><div class="doc-meta"><span class="status-badge neutral">계약 미확정</span><span>2026.10.29 기준</span></div></header><div class="prose"><aside class="doc-note proposed"><span>설계 메모</span><p>URL·요청/응답 스키마·만료 시간·오류 코드의 상세 계약은 구현 계획에서 정합니다.</p></aside><h2 id="section-api-1">인증과 세션</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
