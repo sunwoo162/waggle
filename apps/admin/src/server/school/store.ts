@@ -8,26 +8,50 @@ import { CredentialCipher } from "./crypto";
 import { invalid, SchoolError, unavailable } from "./errors";
 
 const keyMarker = "waggle-school-storage-v1";
-function verify(database: Database.Database, cipher: CredentialCipher, expected = 2) {
+function verify(database: Database.Database, cipher: CredentialCipher, expected = 3) {
   if (database.pragma("user_version", { simple: true }) !== expected) unavailable();
   const row = database.prepare("SELECT key_check FROM school_meta WHERE id=1").get() as
     | { key_check: string }
     | undefined;
   if (!row || cipher.open(row.key_check, "key-check") !== keyMarker) unavailable();
 }
+// Student-submitted Wi-Fi registration requests. Credentials are sealed; nothing about the requester is stored.
+function migrateWifiRequests(database: Database.Database) {
+  database.exec(`
+    CREATE TABLE school_wifi_request (
+      id TEXT PRIMARY KEY, room TEXT NOT NULL, ssid TEXT NOT NULL,
+      security TEXT NOT NULL CHECK(security IN ('open','wpa2-personal','wpa3-personal')),
+      credential TEXT, created_at TEXT NOT NULL
+    );
+    PRAGMA user_version=3;
+  `);
+}
+export type WifiRequest = {
+  id: string;
+  room: string;
+  ssid: string;
+  security: Security;
+  createdAt: string;
+};
 export function migrateSchoolDatabase(database: Database.Database, key: Buffer) {
   const cipher = new CredentialCipher(key);
   database.pragma("foreign_keys = ON");
   database
     .transaction(() => {
       const version = database.pragma("user_version", { simple: true });
-      if (version === 2) {
+      if (version === 3) {
         verify(database, cipher);
+        return;
+      }
+      if (version === 2) {
+        verify(database, cipher, 2);
+        migrateWifiRequests(database);
         return;
       }
       if (version === 1) {
         verify(database, cipher, 1);
         migrateCharacters(database);
+        migrateWifiRequests(database);
         return;
       }
       if (
@@ -58,6 +82,7 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
         .prepare("INSERT INTO school_meta VALUES (1,0,?)")
         .run(cipher.seal(keyMarker, "key-check"));
       migrateCharacters(database);
+      migrateWifiRequests(database);
     })
     .immediate();
 }
@@ -83,6 +108,35 @@ function text(value: unknown, field: string, max: number, optional = false): str
   if ((!optional && !normalized) || normalized.length > max || hasInvalidText(normalized))
     invalid(field, "입력 길이와 문자를 확인해주세요.");
   return normalized;
+}
+function networkSecret(v: Record<string, unknown>) {
+  if (
+    typeof v.ssid !== "string" ||
+    !v.ssid ||
+    Buffer.byteLength(v.ssid, "utf8") > 32 ||
+    hasInvalidText(v.ssid)
+  )
+    invalid("ssid", "SSID는 정확한 이름으로 1~32바이트를 입력해주세요.");
+  if (!securityOptions.some((s) => s.value === v.security))
+    invalid("security", "지원하는 보안 방식을 선택해주세요.");
+  const security = v.security as Security;
+  if (typeof v.password !== "string") invalid("password", "비밀번호 입력 형식을 확인해주세요.");
+  const password = v.password;
+  if (security === "open" && password)
+    invalid("password", "OPEN 네트워크에는 비밀번호를 입력하지 않습니다.");
+  if (
+    password &&
+    security !== "open" &&
+    !(
+      /^[\x20-\x7e]{8,63}$/.test(password) ||
+      (security === "wpa2-personal" && /^[0-9a-fA-F]{64}$/.test(password))
+    )
+  )
+    invalid(
+      "password",
+      "개인용 암호는 영문·숫자·기호 8~63자, WPA2 키는 64자리 16진수로 입력해주세요.",
+    );
+  return { ssid: v.ssid, security, password };
 }
 function enabled(value: unknown): boolean {
   if (typeof value !== "boolean") invalid("enabled", "사용 여부를 선택해주세요.");
@@ -188,34 +242,9 @@ export class SchoolStore {
   saveNetwork(input: unknown, id?: string): Network {
     const v = object(input, ["name", "ssid", "security", "password", "enabled", "revision"]);
     const name = text(v.name, "name", 80);
-    if (
-      typeof v.ssid !== "string" ||
-      !v.ssid ||
-      Buffer.byteLength(v.ssid, "utf8") > 32 ||
-      hasInvalidText(v.ssid)
-    )
-      invalid("ssid", "SSID는 정확한 이름으로 1~32바이트를 입력해주세요.");
-    if (!securityOptions.some((s) => s.value === v.security))
-      invalid("security", "지원하는 보안 방식을 선택해주세요.");
-    const security = v.security as Security;
+    const { ssid, security, password } = networkSecret(v);
     const active = enabled(v.enabled);
     const expected = revision(v.revision, Boolean(id));
-    if (typeof v.password !== "string") invalid("password", "비밀번호 입력 형식을 확인해주세요.");
-    const password = v.password;
-    if (security === "open" && password)
-      invalid("password", "OPEN 네트워크에는 비밀번호를 입력하지 않습니다.");
-    if (
-      password &&
-      security !== "open" &&
-      !(
-        /^[\x20-\x7e]{8,63}$/.test(password) ||
-        (security === "wpa2-personal" && /^[0-9a-fA-F]{64}$/.test(password))
-      )
-    )
-      invalid(
-        "password",
-        "개인용 암호는 영문·숫자·기호 8~63자, WPA2 키는 64자리 16진수로 입력해주세요.",
-      );
     const networkId = id || randomUUID();
     return this.database
       .transaction(() => {
@@ -241,7 +270,7 @@ export class SchoolStore {
           .run({
             id: networkId,
             name,
-            ssid: v.ssid,
+            ssid,
             security,
             credential,
             enabled: Number(active),
@@ -254,6 +283,83 @@ export class SchoolStore {
         return saved;
       })
       .immediate();
+  }
+  submitWifiRequest(input: unknown): { status: "received" } {
+    const v = object(input, ["room", "ssid", "security", "password"]);
+    const room = text(v.room, "room", 40);
+    const { ssid, security, password } = networkSecret(v);
+    if (security !== "open" && !password) invalid("password", "Wi-Fi 비밀번호를 입력해주세요.");
+    const id = randomUUID();
+    this.database
+      .transaction(() => {
+        const pending = this.database
+          .prepare("SELECT COUNT(*) AS n FROM school_wifi_request")
+          .get() as { n: number };
+        if (pending.n >= 200)
+          throw new SchoolError(
+            "unavailable",
+            "확인을 기다리는 요청이 많습니다. 잠시 후 다시 요청해주세요.",
+          );
+        if (
+          this.database.prepare("SELECT 1 FROM school_network WHERE ssid=? AND enabled=1").get(ssid)
+        )
+          throw new SchoolError("conflict", "이미 와글에 등록된 Wi-Fi입니다.", "ssid");
+        this.database
+          .prepare("INSERT INTO school_wifi_request VALUES (?,?,?,?,?,?)")
+          .run(
+            id,
+            room,
+            ssid,
+            security,
+            security === "open" ? null : this.cipher.seal(password, `request:${id}`),
+            new Date().toISOString(),
+          );
+      })
+      .immediate();
+    return { status: "received" };
+  }
+  /** Pending requests for the operator. Passwords are never returned. */
+  wifiRequests(): WifiRequest[] {
+    return this.database
+      .prepare(
+        "SELECT id,room,ssid,security,created_at AS createdAt FROM school_wifi_request ORDER BY created_at,id LIMIT 200",
+      )
+      .all() as WifiRequest[];
+  }
+  approveWifiRequest(id: string): Network {
+    return this.database
+      .transaction(() => {
+        const row = this.database
+          .prepare("SELECT room,ssid,security,credential FROM school_wifi_request WHERE id=?")
+          .get(id) as
+          | { room: string; ssid: string; security: Security; credential: string | null }
+          | undefined;
+        if (!row) throw new SchoolError("not_found", "요청을 찾을 수 없습니다.");
+        if (
+          this.database
+            .prepare("SELECT 1 FROM school_network WHERE ssid=? AND enabled=1")
+            .get(row.ssid)
+        )
+          throw new SchoolError(
+            "conflict",
+            "같은 SSID가 이미 등록돼 있습니다. 요청을 거절해주세요.",
+          );
+        const password = row.credential ? this.cipher.open(row.credential, `request:${id}`) : "";
+        if (row.credential && !password) return unavailable();
+        this.database.prepare("DELETE FROM school_wifi_request WHERE id=?").run(id);
+        return this.saveNetwork({
+          name: row.room,
+          ssid: row.ssid,
+          security: row.security,
+          password,
+          enabled: true,
+        });
+      })
+      .immediate();
+  }
+  rejectWifiRequest(id: string): void {
+    const result = this.database.prepare("DELETE FROM school_wifi_request WHERE id=?").run(id);
+    if (result.changes !== 1) throw new SchoolError("not_found", "요청을 찾을 수 없습니다.");
   }
   saveAccessPoint(input: unknown, id?: string): AccessPoint {
     const v = object(input, [
