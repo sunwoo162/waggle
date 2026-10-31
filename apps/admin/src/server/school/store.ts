@@ -29,13 +29,15 @@ function migrateWifiRequests(database: Database.Database) {
 }
 export type WifiRequest = WifiRequestItem;
 // Every BSSID of a physical AP (including its main BSSID) maps to that one AP and its one character.
-function migrateApBssids(database: Database.Database) {
+function migrateApBssids(database: Database.Database, upgrade = true) {
   database.exec(`
     CREATE TABLE school_ap_bssid (bssid TEXT PRIMARY KEY, ap_id TEXT NOT NULL REFERENCES school_ap(id));
     CREATE INDEX school_ap_bssid_ap ON school_ap_bssid(ap_id);
     INSERT INTO school_ap_bssid SELECT bssid,id FROM school_ap;
     PRAGMA user_version=4;
   `);
+  // The app config gains "bssids": a new version lets every existing client accept the new shape.
+  if (upgrade) database.prepare("UPDATE school_meta SET version=version+1 WHERE id=1").run();
 }
 function normalizeBssid(value: unknown, field: string): string {
   if (typeof value !== "string") invalid(field, "유효한 AP BSSID를 입력해주세요.");
@@ -105,7 +107,7 @@ export function migrateSchoolDatabase(database: Database.Database, key: Buffer) 
         .run(cipher.seal(keyMarker, "key-check"));
       migrateCharacters(database);
       migrateWifiRequests(database);
-      migrateApBssids(database);
+      migrateApBssids(database, false);
     })
     .immediate();
 }

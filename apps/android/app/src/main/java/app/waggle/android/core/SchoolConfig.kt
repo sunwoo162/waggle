@@ -61,7 +61,10 @@ data class SchoolConfig(
 
     private fun sameContent(other: SchoolConfig) =
         networks.sortedBy { it.id } == other.networks.sortedBy { it.id } &&
-            accessPoints.sortedBy { it.id } == other.accessPoints.sortedBy { it.id }
+            normalized(accessPoints) == normalized(other.accessPoints)
+
+    // A config without "bssids" and one listing only the main BSSID describe the same APs.
+    private fun normalized(aps: List<ApConfig>) = aps.sortedBy { it.id }.map { it.copy(bssids = it.allBssids) }
 
     private object Rules {
         val HEX64 = Regex("^[0-9a-fA-F]{64}$")

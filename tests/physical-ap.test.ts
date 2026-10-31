@@ -115,7 +115,7 @@ test("v3 학교 DB는 명시적 이전으로 기존 BSSID를 그대로 묶음 �
   migrateSchoolDatabase(db, key);
   assert.equal(db.pragma("user_version", { simple: true }), 4);
   const reopened = new SchoolStore(db, key);
-  assert.deepEqual(reopened.snapshot(), before);
+  assert.deepEqual(reopened.snapshot(), { ...before, version: before.version + 1 });
   assert.deepEqual(reopened.clientConfig().accessPoints[0].bssids, [saved.bssid]);
   db.close();
 });

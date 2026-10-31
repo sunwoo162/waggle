@@ -62,7 +62,7 @@ test("v1 학교 DB는 명시적으로 이전하고 키·AP·암호문을 보존�
   migrateSchoolDatabase(db, key);
   assert.equal(db.pragma("user_version", { simple: true }), 4);
   const reopened = new SchoolStore(db, key);
-  assert.deepEqual(reopened.snapshot(), before);
+  assert.deepEqual(reopened.snapshot(), { ...before, version: before.version + 1 });
   assert.deepEqual(
     db.prepare("SELECT credential FROM school_network WHERE id=?").get(n.id),
     credential,
@@ -239,6 +239,6 @@ test("v2 학교 DB는 명시적 이전으로 등록 요청 표를 추가하고 �
   assert.throws(() => new SchoolStore(db, key));
   migrateSchoolDatabase(db, key);
   assert.equal(db.pragma("user_version", { simple: true }), 4);
-  assert.deepEqual(new SchoolStore(db, key).snapshot(), before);
+  assert.deepEqual(new SchoolStore(db, key).snapshot(), { ...before, version: before.version + 1 });
   db.close();
 });
