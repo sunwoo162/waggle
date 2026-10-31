@@ -73,6 +73,24 @@ internal sealed class WindowsWlanApi : IWindowsWlanApi
         }
         finally { Marshal.FreeHGlobal(pointer); }
     }
+    public byte[] ProfileList(Guid id)
+    {
+        var pointer = IntPtr.Zero;
+        try
+        {
+            Check(NativeMethods.WlanGetProfileList(Handle, ref id, IntPtr.Zero, out pointer));
+            if (pointer == IntPtr.Zero) throw new WifiException(WifiFailure.InvalidResponse);
+            var count = unchecked((uint)Marshal.ReadInt32(pointer));
+            if (count > 4096) throw new WifiException(WifiFailure.InvalidResponse);
+            return Copy(pointer, 8 + count * NativeWifiBuffers.ProfileInfoSize, 8, 8 + 4096 * NativeWifiBuffers.ProfileInfoSize);
+        }
+        finally { Free(pointer); }
+    }
+    public void DeleteProfile(Guid id, string name)
+    {
+        var status = NativeMethods.WlanDeleteProfile(Handle, ref id, name, IntPtr.Zero);
+        if (status != 1168) Check(status); // ERROR_NOT_FOUND: already gone.
+    }
     public void Dispose() { disposed = true; if (handle.IsValueCreated) handle.Value.Dispose(); }
 }
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -110,4 +128,8 @@ internal static class NativeMethods
     internal static extern uint WlanSetProfile(SafeWlanHandle handle, ref Guid id, uint flags, string xml, IntPtr allUserSecurity, [MarshalAs(UnmanagedType.Bool)] bool overwrite, IntPtr reserved, out uint reason);
     [DllImport(Library, ExactSpelling = true, CharSet = CharSet.Unicode), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     internal static extern uint WlanConnect(SafeWlanHandle handle, ref Guid id, ref WlanConnectionParameters parameters, IntPtr reserved);
+    [DllImport(Library, ExactSpelling = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern uint WlanGetProfileList(SafeWlanHandle handle, ref Guid id, IntPtr reserved, out IntPtr list);
+    [DllImport(Library, ExactSpelling = true, CharSet = CharSet.Unicode), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern uint WlanDeleteProfile(SafeWlanHandle handle, ref Guid id, string name, IntPtr reserved);
 }

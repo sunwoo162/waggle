@@ -9,6 +9,8 @@ internal interface IWindowsWlanApi : IDisposable
     void Scan(Guid id);
     void SetProfile(Guid id, string xml, uint flags, bool overwrite);
     void Connect(Guid id, string name, byte[] preferred);
+    byte[] ProfileList(Guid id);
+    void DeleteProfile(Guid id, string name);
 }
 public sealed class NativeWifiAdapter : IWifiAdapter
 {
@@ -34,6 +36,16 @@ public sealed class NativeWifiAdapter : IWifiAdapter
         api.SetProfile(adapterId, profile.Xml, 2, true);
         ct.ThrowIfCancellationRequested();
         api.Connect(adapterId, profile.Name, NativeWifiBuffers.BssidPreference(bssid));
+    }, ct);
+    public Task RemoveProfilesAsync(Uri origin, CancellationToken ct) => Task.Run(() =>
+    {
+        var prefix = WifiProfileBuilder.Prefix(origin);
+        foreach (var adapter in NativeWifiBuffers.Interfaces(api.Interfaces()))
+            foreach (var name in NativeWifiBuffers.ProfileNames(api.ProfileList(adapter.Id)).Where(n => n.StartsWith(prefix, StringComparison.Ordinal)))
+            {
+                ct.ThrowIfCancellationRequested();
+                api.DeleteProfile(adapter.Id, name);
+            }
     }, ct);
     public void Dispose() => api.Dispose();
 }

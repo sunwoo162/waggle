@@ -19,6 +19,8 @@ public interface IWifiAdapter : IDisposable
     Task<WifiObservation> ObserveAsync(Guid adapterId, CancellationToken ct);
     Task ScanAsync(Guid adapterId, CancellationToken ct);
     Task ConnectAsync(Guid adapterId, Uri origin, NetworkConfig network, string bssid, CancellationToken ct);
+    // Deletes only the Wi-Fi profiles this app installed for the given service origin.
+    Task RemoveProfilesAsync(Uri origin, CancellationToken ct);
 }
 public static class WifiMatch
 {

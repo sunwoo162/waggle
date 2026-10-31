@@ -16,6 +16,8 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     private bool cleanupPending;
     // False after any failed server re-check; Wi-Fi work resumes only after a full successful refresh.
     private bool verified;
+    // Origin whose installed Wi-Fi profiles still need removal after a failed logout cleanup.
+    private string? profileOrigin;
     public bool NeedsCleanup => cleanupPending || session.NeedsCleanup;
     public bool HasStoredSession => NeedsCleanup || session.HasStoredSession;
     public Identity? Identity => session.Current;
@@ -195,11 +197,16 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         try
         {
             CancelManagement(); ManagementRequested = Running = verified = false; Observation = null; LastObservationAt = null; NewlyCollectedApId = null; policy.Reset();
+            profileOrigin ??= session.Origin;
             var remote = false;
             try { remote = await session.LogoutAsync(CancellationToken.None); } catch (Exception) { /* Local cleanup below is always attempted. */ }
             var failed = session.NeedsCleanup || session.HasStoredSession;
             try { await configs.ClearAsync(CancellationToken.None); } catch { failed = true; }
             try { await collection.ClearAsync(CancellationToken.None); } catch { failed = true; }
+            if (profileOrigin is { } origin)
+            {
+                try { await wifi.RemoveProfilesAsync(ServiceOrigin.Parse(origin), CancellationToken.None); profileOrigin = null; } catch { failed = true; }
+            }
             cleanupPending = failed; Status = failed ? ClientStatus.CleanupRequired : ClientStatus.SignedOut;
             if (failed) throw new MemberException(Failure.Storage);
             return remote;

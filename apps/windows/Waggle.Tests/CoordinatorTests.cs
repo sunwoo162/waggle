@@ -18,6 +18,8 @@ public sealed class CoordinatorTests
         public async Task<WifiObservation> ObserveAsync(Guid id, CancellationToken ct) { Observations++; if (ReleaseObserve is not null) { Observing!.TrySetResult(); await ReleaseObserve.Task.WaitAsync(ct); } return Observation; }
         public Task ScanAsync(Guid id, CancellationToken ct) { Scans++; if (ScanError is { } error) throw new WifiException(error); return Task.CompletedTask; }
         public Task ConnectAsync(Guid id, Uri origin, NetworkConfig network, string bssid, CancellationToken ct) { ct.ThrowIfCancellationRequested(); Requests++; return Task.CompletedTask; }
+        public List<Uri> Removed = []; public bool FailRemove;
+        public Task RemoveProfilesAsync(Uri origin, CancellationToken ct) { if (FailRemove) throw new WifiException(WifiFailure.Permission); Removed.Add(origin); return Task.CompletedTask; }
         public void Dispose() { }
     }
     internal sealed class ConfigStore : ISchoolConfigStore
@@ -112,6 +114,15 @@ public sealed class CoordinatorTests
         var pause = f.Client.PauseAsync(default);
         await Assert.ThrowsAsync<OperationCanceledException>(() => tick);
         await pause.WaitAsync(TimeSpan.FromSeconds(5)); Assert.AreEqual(0, f.Wifi.Requests); Assert.IsFalse(f.Client.Running);
+    }
+    [TestMethod]
+    public async Task LogoutRemovesWaggleWifiProfilesAndRetriesWhenRemovalFails()
+    {
+        var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default); f.Wifi.FailRemove = true;
+        Assert.AreEqual(Failure.Storage, (await Assert.ThrowsAsync<MemberException>(() => f.Client.LogoutAsync(default))).Failure);
+        Assert.IsTrue(f.Client.NeedsCleanup); Assert.IsNull(f.Config.Value); Assert.IsNull(f.Client.Identity);
+        f.Wifi.FailRemove = false; await f.Client.LogoutAsync(default);
+        Assert.IsFalse(f.Client.NeedsCleanup); Assert.AreEqual(new Uri("https://waggle.example"), f.Wifi.Removed.Single());
     }
     [TestMethod]
     public async Task LogoutAttemptsAllStoresAndBlocksLoginUntilCleanupRetry()

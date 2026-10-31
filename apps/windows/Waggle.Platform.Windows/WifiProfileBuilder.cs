@@ -10,11 +10,11 @@ internal sealed record WifiProfile(string Name, string Xml)
 }
 internal static class WifiProfileBuilder
 {
+    internal static string Prefix(Uri origin) => "Waggle-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(ServiceOrigin.Parse(origin.AbsoluteUri).AbsoluteUri)))[..12] + "-";
     internal static WifiProfile Build(Uri origin, NetworkConfig network)
     {
         new SchoolConfig(1, 0, [network], []).Validate();
-        var service = ServiceOrigin.Parse(origin.AbsoluteUri).AbsoluteUri;
-        var name = "Waggle-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(service)))[..12] + "-" + network.Id;
+        var name = Prefix(origin) + network.Id;
         XNamespace ns = "http://www.microsoft.com/networking/WLAN/profile/v1";
         XElement E(string key, object value) => new(ns + key, value);
         var encryption = E("authEncryption", new[] { E("authentication", network.Security switch { "open" => "open", "wpa3-personal" => "WPA3SAE", _ => "WPA2PSK" }), E("encryption", network.Security == "open" ? "none" : "AES"), E("useOneX", "false") });

@@ -89,6 +89,24 @@ public sealed class NativeWifiTests
         CollectionAssert.AreEqual(new byte[] { 2, 0, 0, 0, 0, 2 }, preferred[12..18]);
         Assert.AreEqual("02:00:00:00:00:01", (await adapter.ObserveAsync(AdapterId, default)).Connection!.Bssid);
     }
+    internal static byte[] ProfileList(string[] names)
+    {
+        var bytes = new byte[8 + names.Length * 516]; U32(bytes, 0, (uint)names.Length);
+        for (var i = 0; i < names.Length; i++) Encoding.Unicode.GetBytes(names[i]).CopyTo(bytes, 8 + i * 516);
+        return bytes;
+    }
+    [TestMethod]
+    public async Task LogoutRemovesOnlyThisServiceProfilesFromEveryAdapter()
+    {
+        var origin = new Uri("https://waggle.example");
+        var mine = WifiProfileBuilder.Build(origin, WifiPolicyTests.Config.Networks[0]).Name;
+        var other = WifiProfileBuilder.Build(new("https://other.example"), WifiPolicyTests.Config.Networks[0]).Name;
+        using var api = new Api { Profiles = [mine, "집 Wi-Fi", other] }; using var adapter = new NativeWifiAdapter(api);
+        await adapter.RemoveProfilesAsync(origin, default);
+        CollectionAssert.AreEqual(new[] { mine }, api.Deleted);
+        CollectionAssert.AreEqual(new[] { mine, "집 Wi-Fi" }, NativeWifiBuffers.ProfileNames(ProfileList([mine, "집 Wi-Fi"])));
+        var bad = ProfileList([mine]); U32(bad, 0, 2); Assert.Throws<WifiException>(() => NativeWifiBuffers.ProfileNames(bad));
+    }
     [TestMethod]
     public async Task CancellationAfterProfileInstallDoesNotSendAnotherConnectionRequest()
     {
@@ -105,6 +123,9 @@ public sealed class NativeWifiTests
         public void Scan(Guid id) { Scans++; }
         public void SetProfile(Guid id, string xml, uint flags, bool overwrite) { Flags = flags; Overwrite = overwrite; AfterInstall?.Invoke(); }
         public void Connect(Guid id, string name, byte[] preferred) { TargetAdapter = id; ProfileName = name; Preferred = preferred; }
+        public string[] Profiles = []; public List<string> Deleted = [];
+        public byte[] ProfileList(Guid id) => NativeWifiTests.ProfileList(Profiles);
+        public void DeleteProfile(Guid id, string name) => Deleted.Add(name);
         public void Dispose() { }
     }
 }
