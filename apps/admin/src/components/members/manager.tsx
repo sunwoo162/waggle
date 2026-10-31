@@ -15,7 +15,11 @@ import {
 import { useEffect, useRef, useState } from "react";
 import type { InviteMember, MemberSnapshot } from "../../shared/members";
 
-type Confirmation = { member: InviteMember; action: "reissue" | "revoke"; deviceId?: string };
+type Confirmation = {
+  member: InviteMember;
+  action: "reissue" | "revoke" | "delete";
+  deviceId?: string;
+};
 function date(value: number) {
   return new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium",
@@ -298,14 +302,18 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
                 ? "기기 세션 회수"
                 : confirmation.action === "reissue"
                   ? "코드 재발급"
-                  : "코드 회수"}
+                  : confirmation.action === "delete"
+                    ? "계정 삭제"
+                    : "코드 회수"}
             </h2>
             <p>
               {confirmation.deviceId
                 ? "선택한 기기만 와글에서 로그아웃됩니다. 다른 기기는 계속 사용할 수 있습니다."
                 : confirmation.action === "reissue"
                   ? "기존 코드와 모든 기기 세션이 차단됩니다. 새 코드로 다시 로그인해야 합니다."
-                  : "이 코드와 모든 기기 세션을 차단합니다. 다시 이용하려면 코드를 재발급해주세요."}
+                  : confirmation.action === "delete"
+                    ? "코드·모든 기기 세션·도감 수집 기록을 영구히 지웁니다. 되돌릴 수 없습니다. 졸업·전학 등으로 더 이상 쓰지 않는 계정에 사용해주세요."
+                    : "이 코드와 모든 기기 세션을 차단합니다. 다시 이용하려면 코드를 재발급해주세요."}
             </p>
             <p className="school-form-note">
               와글 인증을 회수하는 기능입니다. 기기에 이미 저장된 학교 Wi-Fi 암호까지 삭제되지는
@@ -331,7 +339,11 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
                   void mutate(
                     `/${confirmation.member.id}/${confirmation.deviceId ? `sessions/${confirmation.deviceId}/revoke` : confirmation.action}`,
                     { revision: confirmation.member.revision },
-                    confirmation.deviceId ? "기기 세션을 회수했습니다." : "코드를 회수했습니다.",
+                    confirmation.deviceId
+                      ? "기기 세션을 회수했습니다."
+                      : confirmation.action === "delete"
+                        ? "계정을 삭제했습니다."
+                        : "코드를 회수했습니다.",
                   )
                 }
               >
@@ -339,7 +351,9 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
                   ? "처리 중…"
                   : confirmation.action === "reissue"
                     ? "새 코드 발급"
-                    : "회수하기"}
+                    : confirmation.action === "delete"
+                      ? "영구 삭제"
+                      : "회수하기"}
               </button>
             </div>
           </section>
@@ -393,6 +407,14 @@ export function InviteManager({ initial }: { initial: MemberSnapshot }) {
                     onClick={() => confirm({ member: m, action: "revoke" })}
                   >
                     회수
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={`${m.alias} 계정 삭제`}
+                    onClick={() => confirm({ member: m, action: "delete" })}
+                  >
+                    삭제
                   </button>
                 </div>
               </div>

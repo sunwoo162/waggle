@@ -50,7 +50,7 @@ export function createMemberAdminHandler(deps: {
       const path = pathOf(request, "/api/admin/members");
       if (
         path === null ||
-        (!/^\/[a-f0-9-]{36}\/(reissue|revoke)$/.test(path) &&
+        (!/^\/[a-f0-9-]{36}\/(reissue|revoke|delete)$/.test(path) &&
           !/^\/[a-f0-9-]{36}\/sessions\/[a-f0-9-]{36}\/revoke$/.test(path) &&
           path !== "")
       )
@@ -86,6 +86,11 @@ export function createMemberAdminHandler(deps: {
         audit("member.reissue", parts[0]);
         return json({ ...issued, snapshot: service.snapshot() });
       }
+      if (parts[1] === "delete") {
+        await service.deleteMember(parts[0], body.revision);
+        audit("member.delete", parts[0]);
+        return json({ snapshot: service.snapshot() });
+      }
       if (parts[1] === "sessions") {
         await service.revokeDevice(parts[0], parts[2], body.revision);
         audit("member.device-revoke", parts[2]);
@@ -106,13 +111,26 @@ export function createClientHandler(deps: {
   return async (request: Request): Promise<Response> => {
     try {
       const path = pathOf(request, "/api/client");
-      if (!path || !["/code-login", "/refresh", "/logout", "/me"].includes(path))
+      if (!path || !["/code-login", "/refresh", "/logout", "/me", "/account-delete"].includes(path))
         return json({ message: "경로를 찾을 수 없습니다." }, 404);
       const allowed = path === "/me" ? "GET" : "POST";
       if (request.method !== allowed) return badMethod(allowed);
       const origin = request.headers.get("origin");
       if (origin && origin !== deps.origin())
         return json({ message: "허용되지 않은 요청 출처입니다." }, 403);
+      if (path === "/account-delete") {
+        // A signed-in student deletes their own account (code, sessions, collection) from the app.
+        const token = request.headers
+          .get("authorization")
+          ?.match(/^Bearer ([A-Za-z0-9._-]+)$/i)?.[1];
+        const service = deps.getService();
+        const access = await service.access(token);
+        await service.deleteMember(access.member.id);
+        return new Response(null, {
+          status: 204,
+          headers: { "cache-control": "private, no-store" },
+        });
+      }
       if (path === "/me") {
         const token = request.headers
           .get("authorization")

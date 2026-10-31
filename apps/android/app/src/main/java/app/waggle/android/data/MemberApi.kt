@@ -40,6 +40,11 @@ class MemberApi(private val origin: String) {
         send("logout", """{"refreshToken":${quote(refreshToken)}}""", null)
     }
 
+    /** Permanently deletes the signed-in account (code, device sessions, collection). Expects 204. */
+    fun deleteAccount(accessToken: String) {
+        send("account-delete", "{}", accessToken)
+    }
+
     fun config(accessToken: String): SchoolConfig =
         decode { json.decodeFromString<SchoolConfig>(send("config", null, accessToken, 1024 * 1024)).validate() }
 

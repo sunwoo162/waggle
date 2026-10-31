@@ -109,6 +109,16 @@ class WaggleController private constructor(private val context: Context) {
         prefs.edit().apply { listOf(ORIGIN, ON, SYNCED, ROOMS, SKIPPED, APPROVED, REGISTERED).forEach { remove(it) } }.apply()
     }
 
+    /** Deletes the account on the server first; only then clears this phone the same way as logout. */
+    suspend fun deleteAccount() = run("계정을 삭제했어요.") {
+        authorized { api, token -> api.deleteAccount(token) }
+        prefs.edit().putBoolean(ON, false).apply()
+        runCatching { suggestions.removeAll() }
+        SyncWorker.cancel(context)
+        store.clear()
+        prefs.edit().apply { listOf(ORIGIN, ON, SYNCED, ROOMS, SKIPPED, APPROVED, REGISTERED).forEach { remove(it) } }.apply()
+    }
+
     suspend fun requestWifi(room: String, ssid: String, security: String, password: String) =
         run("등록 요청을 보냈어요. 운영자가 확인하면 자동으로 연결돼요.") {
             authorized { api, token -> api.requestWifi(token, room, ssid, security, password) }

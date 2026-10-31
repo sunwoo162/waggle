@@ -236,6 +236,18 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         }
         finally { gate.Release(); }
     }
+    /// <summary>Deletes the account on the server, then performs the same local cleanup as logout.</summary>
+    public async Task DeleteAccountAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            RequireClean();
+            await session.WithAccessAsync(async (_, _, api, token, cancellation) => { await api.DeleteAccountAsync(token, cancellation); return true; }, ct);
+        }
+        finally { gate.Release(); }
+        await LogoutAsync(CancellationToken.None);
+    }
     public async Task ClearHistoryAsync(CancellationToken ct)
     {
         await gate.WaitAsync(ct);
