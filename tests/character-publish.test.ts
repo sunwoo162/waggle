@@ -62,3 +62,53 @@ test("공개 전 AP의 연결 보고는 거부하지 않되 수집하지 않고,
   assert.deepEqual(store.validateReports({ reports: [report] }), [ap.id]);
   db.close();
 });
+
+test("수집 응답은 현재 공개 캐릭터만 알려주고, 다시 공개하면 기존 수집이 복원된다", async () => {
+  const { collectionFixture } = await import("./helpers/collection");
+  const { createCollectionHandler } = await import(
+    "../apps/admin/src/server/members/collection-http"
+  );
+  const f = await collectionFixture();
+  try {
+    const handler = createCollectionHandler({
+      getMembers: () => f.members,
+      getStore: () => f.school.characters,
+      origin: () => "http://localhost:3000",
+    });
+    const issued = await f.members.issue("합성 수집자");
+    const pair = await f.members.login({
+      code: issued.code,
+      platform: "windows",
+      deviceName: "검증",
+    });
+    const call = (body?: unknown) =>
+      handler(
+        new Request("http://localhost:3000/api/client/collection", {
+          method: body ? "POST" : "GET",
+          headers: {
+            authorization: `Bearer ${pair.accessToken}`,
+            "content-type": "application/json",
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        }),
+      ).then((r) => r.json() as Promise<{ apIds: string[] }>);
+    const report = { apId: f.ap.id, ssid: f.network.ssid, bssid: f.ap.bssid };
+    assert.deepEqual((await call({ reports: [report] })).apIds, [f.ap.id]);
+    await f.school.characters.save(f.ap.id, {
+      revision: 1,
+      name: "합성 친구",
+      description: "",
+      image: null,
+    });
+    assert.deepEqual((await call()).apIds, []);
+    await f.school.characters.save(f.ap.id, {
+      revision: 2,
+      name: "합성 친구",
+      description: "",
+      image: await art(),
+    });
+    assert.deepEqual((await call()).apIds, [f.ap.id]);
+  } finally {
+    f.close();
+  }
+});

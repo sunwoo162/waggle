@@ -52,6 +52,7 @@ public sealed class CoordinatorTests
     public async Task AcceptedRequestNeverCollectsUntilOsReportsTheActualAp()
     {
         var f = await Setup(); f.Wifi.Observation = WifiPolicyTests.Observation() with { Connection = null };
+        f.Api.Catalog = new(1, 2, [.. CollectionSyncTests.Catalog().Characters, new(WifiPolicyTests.Config.AccessPoints[1].Id, "둘째 친구", "", null)]);
         await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
         Assert.AreEqual(1, f.Wifi.Requests); Assert.HasCount(0, f.State.Value!.Pending);
         f.Time.Advance(10); f.Wifi.Observation = WifiPolicyTests.Observation(70) with { Connection = new(" QA 학교망 ", "02:00:00:00:00:02", "wpa2-personal", 70) };
