@@ -69,6 +69,33 @@ public sealed class WifiPolicyTests
         Assert.AreEqual("02:00:00:00:00:09", new WifiPolicy().Decide(Config, unregisteredBssid, Now).Target!.Bssid);
     }
     [TestMethod]
+    public void SameRoomMoveIsConfirmedOnlyWhenTheTargetBssidIsReached()
+    {
+        var policy = new WifiPolicy(); WifiDecision decision = null!;
+        for (var i = 0; i < 3; i++) decision = policy.Decide(Config, Observation(), Now.AddSeconds(i * 10));
+        Assert.AreEqual("02:00:00:00:00:02", decision.Target!.Bssid);
+        policy.Requested(decision.Target, Now.AddSeconds(20));
+        Assert.AreEqual(WifiAction.Wait, policy.Decide(Config, Observation(), Now.AddSeconds(30)).Action);
+        policy.Decide(Config, Observation(), Now.AddSeconds(51));
+        Assert.AreEqual(SchoolConfigTests.NetworkId, policy.TimedOutNetworkId);
+        for (var i = 0; i < 6; i++) Assert.AreNotEqual(WifiAction.Connect, policy.Decide(Config, Observation(), Now.AddSeconds(120 + i * 10)).Action);
+        var reached = new WifiPolicy();
+        reached.Requested(decision.Target, Now);
+        Assert.AreNotEqual(WifiAction.Wait, reached.Decide(Config, Observation() with { Connection = Observation().Connection! with { Bssid = "02:00:00:00:00:02", Quality = 70 } }, Now.AddSeconds(10)).Action);
+    }
+    [TestMethod]
+    public void AmbiguousDuplicateSsidIsNeverChosenAndRejectedProfileBlocksTheRoom()
+    {
+        var duplicate = Rooms with { Networks = [.. Rooms.Networks, new("55555555-5555-4555-8555-555555555555", "GSM-3-2", "wpa3-personal", "synthetic-fixture-three")] };
+        var seen = new WifiObservation(null, [new("GSM-3-2", "02:bb:00:00:00:07", true, 80, Now)]);
+        Assert.AreEqual(WifiAction.Keep, new WifiPolicy().Decide(duplicate, seen, Now).Action);
+        var policy = new WifiPolicy();
+        var target = policy.Decide(Rooms, seen, Now).Target!;
+        policy.Failed(target.Bssid, Now, target.NetworkId);
+        var otherBssid = seen with { Candidates = [new("GSM-3-2", "02:bb:00:00:00:08", true, 85, Now.AddSeconds(70))] };
+        Assert.AreEqual(WifiAction.Keep, policy.Decide(Rooms, otherBssid, Now.AddSeconds(70)).Action);
+    }
+    [TestMethod]
     public void OnlyActualOsConnectionMatchingSsidBssidAndSecurityResolvesCollectedAp()
     {
         Assert.AreEqual(Config.AccessPoints[0].Id, WifiMatch.ConnectedAp(Config, Observation().Connection!)!.Id);

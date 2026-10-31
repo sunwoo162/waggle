@@ -26,7 +26,7 @@ public static class WifiMatch
 {
     // Connection management is by room network (SSID + security); BSSIDs only matter for characters.
     public static NetworkConfig? ConnectedNetwork(SchoolConfig config, ConnectedWifi? connection) =>
-        connection is null || connection.Quality is < 0 or > 100 ? null : config.Networks.FirstOrDefault(n => n.Ssid == connection.Ssid && n.Security == connection.Security);
+        connection is null || connection.Quality is < 0 or > 100 ? null : config.Networks.Where(n => n.Ssid == connection.Ssid && n.Security == connection.Security).Take(2).ToArray() is [var only] ? only : null;
     public static ApConfig? ConnectedAp(SchoolConfig config, ConnectedWifi? connection)
     {
         if (connection is null || connection.Quality is < 0 or > 100) return null;

@@ -183,7 +183,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         }
         catch (WifiException error) when (error.Failure is WifiFailure.ProfileRejected or WifiFailure.Unavailable or WifiFailure.Busy)
         {
-            policy.Failed(target.Bssid, clock.GetUtcNow()); LastWifiFailure = error.Failure;
+            policy.Failed(target.Bssid, clock.GetUtcNow(), error.Failure == WifiFailure.ProfileRejected ? target.NetworkId : null); LastWifiFailure = error.Failure;
             await collection.LogAsync(LocalEventKind.Failed, target.Network.Ssid, clock.GetUtcNow(), ct);
         }
     }
