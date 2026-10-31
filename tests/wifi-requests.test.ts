@@ -133,7 +133,11 @@ test("운영자 요청함은 인증·Origin을 확인하고 승인·거절한다
       getStore: () => s,
       origin: () => origin,
     });
-  const admin = make({ kind: "authorized", user: { id: "synthetic", name: "합성 운영자" } });
+  const admin = make({
+    kind: "authorized",
+    user: { id: "synthetic", name: "합성 운영자" },
+    signedInAt: Date.now(),
+  });
   assert.equal(
     (await make({ kind: "unauthenticated" })(new Request(`${origin}/api/admin/wifi-requests`)))
       .status,

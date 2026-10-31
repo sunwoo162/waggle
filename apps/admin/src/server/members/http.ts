@@ -65,8 +65,14 @@ export function createMemberAdminHandler(deps: {
       if ("error" in parsed)
         return json({ message: "JSON 입력 형식과 크기를 확인해주세요." }, parsed.error);
       const service = deps.getService();
-      const audit = (action: string, target: string) =>
-        deps.audit?.(access.user.id, action, target);
+      // Best effort: codes are already issued/revoked; an unavailable log must not hide the one-time code.
+      const audit = (action: string, target: string) => {
+        try {
+          deps.audit?.(access.user.id, action, target);
+        } catch {
+          // Intentionally ignored.
+        }
+      };
       if (path === "") {
         const body = object(parsed.value, ["alias"]);
         const issued = await service.issue(body.alias);

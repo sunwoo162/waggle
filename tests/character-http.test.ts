@@ -47,7 +47,11 @@ test("캐릭터 관리 API는 운영자·Origin·수정 버전 경계를 유지�
     access = { kind: "forbidden" };
     assert.equal((await handler(request("/api/admin/characters"))).status, 403);
     assert.equal(opens, 0);
-    access = { kind: "authorized", user: { id: "operator", name: "합성 운영자" } };
+    access = {
+      kind: "authorized",
+      user: { id: "operator", name: "합성 운영자" },
+      signedInAt: Date.now(),
+    };
     const get = await handler(request("/api/admin/characters"));
     assert.equal(get.status, 200);
     assert.match(get.headers.get("cache-control") || "", /no-store/);

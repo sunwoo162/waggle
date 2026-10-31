@@ -12,7 +12,14 @@ test("관리자 API는 503·401·403·200을 구분하고 토큰을 반환하지
     [{ kind: "unavailable" }, 503],
     [{ kind: "unauthenticated" }, 401],
     [{ kind: "forbidden" }, 403],
-    [{ kind: "authorized", user: { id: "local-fixture", name: "테스트 운영자" } }, 200],
+    [
+      {
+        kind: "authorized",
+        user: { id: "local-fixture", name: "테스트 운영자" },
+        signedInAt: Date.now(),
+      },
+      200,
+    ],
   ];
   for (const [access, status] of cases) {
     const response = await createAdminSessionHandler(async () => access)(

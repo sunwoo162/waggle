@@ -8,7 +8,9 @@ export function requireRecentSignIn(
   access: Extract<AdminAccess, { kind: "authorized" }>,
   now = Date.now(),
 ): Response | null {
-  if (access.signedInAt === undefined || now - access.signedInAt <= RECENT_SIGN_IN_MS) return null;
+  // Fails closed: an unknown or invalid sign-in time always requires signing in again.
+  if (Number.isFinite(access.signedInAt) && now - access.signedInAt <= RECENT_SIGN_IN_MS)
+    return null;
   return json(
     {
       code: "reauth",

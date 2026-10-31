@@ -16,7 +16,11 @@ const payload = {
   enabled: true,
 };
 function setup(
-  access: AdminAccess = { kind: "authorized", user: { id: "synthetic", name: "합성 운영자" } },
+  access: AdminAccess = {
+    kind: "authorized",
+    user: { id: "synthetic", name: "합성 운영자" },
+    signedInAt: Date.now(),
+  },
 ) {
   const db = new Database(":memory:");
   const key = randomBytes(32);
@@ -161,7 +165,11 @@ test("AP 경로·잘못된 메서드·저장소 오류와 검증 오류를 안�
   assert.equal((await handler(write("/networks", { ...payload, ssid: "" }))).status, 400);
   db.close();
   const failed = createSchoolHandler({
-    getAccess: async () => ({ kind: "authorized", user: { id: "a", name: "b" } }),
+    getAccess: async () => ({
+      kind: "authorized",
+      user: { id: "a", name: "b" },
+      signedInAt: Date.now(),
+    }),
     getStore: () => {
       throw new Error("private raw detail");
     },

@@ -31,6 +31,11 @@ export function createSchoolHandler(deps: {
       if (request.method === "GET") return json((await deps.getStore()).snapshot());
       if (request.headers.get("origin") !== deps.origin())
         return json({ message: "같은 관리 사이트에서 요청해주세요." }, 403);
+      // Checked before reading the body: password-bearing writes need a recent sign-in.
+      if (parts[0] === "networks") {
+        const stale = requireRecentSignIn(access);
+        if (stale) return stale;
+      }
       const body = await readJson(request);
       if ("error" in body)
         return json(
@@ -42,8 +47,6 @@ export function createSchoolHandler(deps: {
         );
       const store = await deps.getStore();
       if (parts[0] === "networks") {
-        const stale = requireRecentSignIn(access);
-        if (stale) return stale;
         const saved = store.saveNetwork(body.value, parts[1]);
         store.audit(access.user.id, "network.save", saved.id);
       } else {

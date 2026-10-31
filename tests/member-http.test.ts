@@ -17,7 +17,11 @@ async function setup() {
   await migrateMembers(auth, db, settings);
   const service = new MemberService(db, auth, settings);
   const admin = createMemberAdminHandler({
-    getAccess: async () => ({ kind: "authorized", user: { id: "operator", name: "합성 운영자" } }),
+    getAccess: async () => ({
+      kind: "authorized",
+      user: { id: "operator", name: "합성 운영자" },
+      signedInAt: Date.now(),
+    }),
     getService: () => service,
     origin: () => origin,
   });

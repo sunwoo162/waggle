@@ -11,7 +11,7 @@ export type AdminAccess =
       kind: "authorized";
       user: { id: string; name: string };
       /** When this operator session was created (ms). Sensitive changes need a recent sign-in. */
-      signedInAt?: number;
+      signedInAt: number;
     };
 
 export async function authorizeAdmin(

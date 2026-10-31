@@ -126,3 +126,33 @@ test("모든 페이지는 다른 사이트에 끼워 넣을 수 없고 기본 �
   assert.equal(headers["x-content-type-options"], "nosniff");
   assert.equal(headers["referrer-policy"], "same-origin");
 });
+
+test("작업 기록을 쓸 수 없어도 이미 적용된 변경은 성공으로 응답한다", async () => {
+  const { db, store } = setup();
+  db.exec("DROP TABLE school_audit");
+  const handler = createSchoolHandler({
+    getAccess: async () => ({
+      kind: "authorized",
+      user: { id: "operator-1", name: "합성 운영자" },
+      signedInAt: Date.now(),
+    }),
+    getStore: () => store,
+    origin: () => origin,
+  });
+  const response = await handler(
+    new Request(`${origin}/api/admin/school/networks`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "실",
+        ssid: "QA-1",
+        security: "open",
+        password: "",
+        enabled: true,
+      }),
+    }),
+  );
+  assert.equal(response.status, 201);
+  assert.equal(store.snapshot().networks.length, 1);
+  db.close();
+});

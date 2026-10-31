@@ -384,15 +384,20 @@ export class SchoolStore {
       })
       .immediate();
   }
+  /** Best effort: the change it describes is already committed, so a logging failure must not become an error. */
   audit(operator: string, action: string, target: string) {
-    this.database
-      .prepare("INSERT INTO school_audit (at,operator,action,target) VALUES (?,?,?,?)")
-      .run(
-        new Date().toISOString(),
-        operator.slice(0, 80),
-        action.slice(0, 40),
-        target.slice(0, 80),
-      );
+    try {
+      this.database
+        .prepare("INSERT INTO school_audit (at,operator,action,target) VALUES (?,?,?,?)")
+        .run(
+          new Date().toISOString(),
+          operator.slice(0, 80),
+          action.slice(0, 40),
+          target.slice(0, 80),
+        );
+    } catch {
+      // Intentionally ignored; see above.
+    }
   }
   auditLog(limit = 200): AuditEntry[] {
     return this.database
