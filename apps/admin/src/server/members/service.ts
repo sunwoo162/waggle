@@ -250,7 +250,8 @@ export class MemberService {
     const name = text(input.deviceName, 64);
     if (typeof input.platform !== "string" || !["android", "windows"].includes(input.platform))
       return memberInvalid();
-    this.limit("code-login", 120, 60_000);
+    // No global bucket: one client must not be able to block every student. The per-selector
+    // limit below caps secret verification, and the 192-bit secret makes guessing infeasible.
     const parsed =
       typeof input.code === "string"
         ? input.code.trim().match(/^WG\.([a-f0-9]{16})\.([A-Za-z0-9_-]{32})$/)
@@ -321,8 +322,9 @@ export class MemberService {
     return { ...value, session: session.session };
   }
   async refresh(token: unknown): Promise<TokenPair> {
-    this.limit("refresh", 120, 60_000);
     const old = await this.refreshIdentity(token);
+    // Count only authenticated refreshes, per device, so forged tokens cannot exhaust others.
+    this.limit(`refresh:${old.device.id}`, 10, 60_000);
     const next = await this.auth.api.createDeviceGrant({ body: { userId: old.member.user_id } });
     try {
       const device = this.db

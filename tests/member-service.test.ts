@@ -279,3 +279,33 @@ test("일반 사용자 토큰·쿠키는 별도 운영자 인증에서 인정되
   adminDb.close();
   database.close();
 });
+test("잘못된 코드 요청이 많아도 다른 사용자의 코드 로그인을 막지 않는다", async () => {
+  const { database, service } = await setup();
+  const issued = await service.issue("합성 정상 이용자");
+  for (let i = 0; i < 130; i++)
+    await service
+      .login({
+        code: `WG.${i.toString(16).padStart(16, "0")}.${"x".repeat(32)}`,
+        platform: "android",
+        deviceName: "검증",
+      })
+      .catch(() => undefined);
+  const pair = await service.login({ code: issued.code, platform: "windows", deviceName: "검증" });
+  assert.ok(pair.accessToken);
+  database.close();
+});
+test("잘못된 갱신 토큰이 많아도 다른 기기의 갱신을 막지 않고, 기기별 갱신 횟수는 제한한다", async () => {
+  const { database, service } = await setup();
+  const issued = await service.issue("합성 갱신 제한");
+  let pair = await service.login({ code: issued.code, platform: "windows", deviceName: "검증" });
+  for (let i = 0; i < 130; i++)
+    await assert.rejects(() => service.refresh(`forged.refresh.${i}`), /unauthorized/);
+  pair = await service.refresh(pair.refreshToken);
+  for (let i = 0; i < 9; i++) pair = await service.refresh(pair.refreshToken);
+  await assert.rejects(() => service.refresh(pair.refreshToken), /rate_limited/);
+  database.prepare("DELETE FROM native_limit").run();
+  pair = await service.refresh(pair.refreshToken);
+  const other = await service.login({ code: issued.code, platform: "android", deviceName: "검증" });
+  assert.ok((await service.refresh(other.refreshToken)).accessToken);
+  database.close();
+});
