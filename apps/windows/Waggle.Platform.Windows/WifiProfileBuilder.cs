@@ -10,7 +10,9 @@ internal sealed record WifiProfile(string Name, string Xml)
 }
 internal static class WifiProfileBuilder
 {
-    internal const string AppPrefix = "Waggle-";
+    // Exactly the names Build produces, so a user's own network such as "Waggle-Guest" is never touched.
+    private static readonly System.Text.RegularExpressions.Regex Owned = new(@"\AWaggle-[0-9a-f]{12}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    internal static bool IsOwned(string name) => Owned.IsMatch(name);
     internal static string Prefix(Uri origin) => "Waggle-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(ServiceOrigin.Parse(origin.AbsoluteUri).AbsoluteUri)))[..12] + "-";
     internal static WifiProfile Build(Uri origin, NetworkConfig network)
     {

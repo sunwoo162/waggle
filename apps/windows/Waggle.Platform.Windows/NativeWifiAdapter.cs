@@ -41,7 +41,7 @@ public sealed class NativeWifiAdapter : IWifiAdapter
     {
         var kept = keep is null ? null : WifiProfileBuilder.Prefix(keep);
         foreach (var adapter in NativeWifiBuffers.Interfaces(api.Interfaces()))
-            foreach (var name in NativeWifiBuffers.ProfileNames(api.ProfileList(adapter.Id)).Where(n => n.StartsWith(WifiProfileBuilder.AppPrefix, StringComparison.Ordinal) && (kept is null || !n.StartsWith(kept, StringComparison.Ordinal))))
+            foreach (var name in NativeWifiBuffers.ProfileNames(api.ProfileList(adapter.Id)).Where(n => WifiProfileBuilder.IsOwned(n) && (kept is null || !n.StartsWith(kept, StringComparison.Ordinal))))
             {
                 ct.ThrowIfCancellationRequested();
                 api.DeleteProfile(adapter.Id, name);

@@ -101,7 +101,7 @@ public sealed class NativeWifiTests
         var origin = new Uri("https://waggle.example");
         var mine = WifiProfileBuilder.Build(origin, WifiPolicyTests.Config.Networks[0]).Name;
         var other = WifiProfileBuilder.Build(new("https://other.example"), WifiPolicyTests.Config.Networks[0]).Name;
-        using var api = new Api { Profiles = [mine, "집 Wi-Fi", other] }; using var adapter = new NativeWifiAdapter(api);
+        using var api = new Api { Profiles = [mine, "집 Wi-Fi", "Waggle-Guest", "Waggle-0123456789ab-not-an-id", other] }; using var adapter = new NativeWifiAdapter(api);
         await adapter.RemoveProfilesExceptAsync(origin, default);
         CollectionAssert.AreEqual(new[] { other }, api.Deleted);
         api.Deleted.Clear(); await adapter.RemoveProfilesExceptAsync(null, default);

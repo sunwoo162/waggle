@@ -52,7 +52,7 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
     private async Task SweepProfilesAsync(string? keep)
     {
         try { await wifi.RemoveProfilesExceptAsync(keep is null ? null : ServiceOrigin.Parse(keep), CancellationToken.None); ProfileCleanupPending = false; }
-        catch (Exception error) when (error is WifiException or OperationCanceledException or MemberException) { ProfileCleanupPending = true; }
+        catch (Exception) { ProfileCleanupPending = true; } // Cleanup must never abort logout or sign-in.
     }
     private async Task RefreshCoreAsync(CancellationToken ct)
     {
