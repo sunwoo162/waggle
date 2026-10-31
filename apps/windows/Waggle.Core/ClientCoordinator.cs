@@ -245,6 +245,8 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
             RequireClean();
             await session.WithAccessAsync(async (_, _, api, token, cancellation) => { await api.DeleteAccountAsync(token, cancellation); return true; }, ct);
         }
+        // Unauthorized here means the account is already gone (e.g. the reply to a successful delete was lost): clean up anyway.
+        catch (MemberException error) when (error.Failure == Failure.Unauthorized) { }
         finally { gate.Release(); }
         await LogoutAsync(CancellationToken.None);
     }

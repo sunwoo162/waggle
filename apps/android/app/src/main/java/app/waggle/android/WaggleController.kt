@@ -111,7 +111,12 @@ class WaggleController private constructor(private val context: Context) {
 
     /** Deletes the account on the server first; only then clears this phone the same way as logout. */
     suspend fun deleteAccount() = run("계정을 삭제했어요.") {
-        authorized { api, token -> api.deleteAccount(token) }
+        try {
+            authorized { api, token -> api.deleteAccount(token) }
+        } catch (error: WaggleException) {
+            // Unauthorized means the account is already gone (e.g. a lost reply to a successful delete): clean up anyway.
+            if (error.failure != Failure.Unauthorized) throw error
+        }
         prefs.edit().putBoolean(ON, false).apply()
         runCatching { suggestions.removeAll() }
         SyncWorker.cancel(context)

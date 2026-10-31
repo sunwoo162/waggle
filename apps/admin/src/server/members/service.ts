@@ -211,6 +211,15 @@ export class MemberService {
       .transaction(() => {
         const member = expected === undefined ? this.member(id) : this.revision(id, expected);
         if (!member) return denied();
+        const devices = this.db
+          .prepare("SELECT id FROM native_device WHERE member_id=?")
+          .all(id) as {
+          id: string;
+        }[];
+        const bucket = this.db.prepare("DELETE FROM native_limit WHERE bucket=?");
+        for (const d of devices)
+          for (const kind of ["refresh", "config", "collection", "wifi-request"])
+            bucket.run(`${kind}:${d.id}`);
         this.db.prepare("DELETE FROM native_collection WHERE member_id=?").run(id);
         this.db.prepare("DELETE FROM native_device WHERE member_id=?").run(id);
         this.db.prepare("DELETE FROM native_member WHERE id=?").run(id);
@@ -223,7 +232,11 @@ export class MemberService {
       await this.auth.api.dropInviteIdentity({ body: { userId } });
     } catch {
       // The account is already unusable; still make sure the internal user row (operator alias) is gone.
-      this.db.prepare('DELETE FROM "user" WHERE id=?').run(userId);
+      try {
+        this.db.prepare('DELETE FROM "user" WHERE id=?').run(userId);
+      } catch {
+        // The deletion above is committed; a leftover empty user row holds no account data.
+      }
     }
   }
   async revokeDevice(memberId: string, deviceId: string, expected: unknown) {

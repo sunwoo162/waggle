@@ -157,6 +157,13 @@ public sealed class CoordinatorTests
         Assert.IsNull(f.State.Value); Assert.AreEqual(ClientStatus.SignedOut, f.Client.Status); Assert.IsNull(f.Wifi.Kept[^1]);
     }
     [TestMethod]
+    public async Task AlreadyDeletedAccountStillCleansThisDevice()
+    {
+        var f = await Setup(); f.Api.Revoked = true;
+        await f.Client.DeleteAccountAsync(default);
+        Assert.IsFalse(f.Client.HasStoredSession); Assert.IsNull(f.Config.Value); Assert.AreEqual(ClientStatus.SignedOut, f.Client.Status);
+    }
+    [TestMethod]
     public async Task PauseCancelsSlowObservationBeforeItCanConnect()
     {
         var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);

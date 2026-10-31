@@ -102,9 +102,9 @@ public partial class MainWindow : Window
         if (answer != MessageBoxResult.Yes) return;
         await RunAsync(async () =>
         {
-            RememberAutoStart(autoStart.Remove);
-            await client.DeleteAccountAsync(closing.Token); ConsentInput.IsChecked = false; lastNotice = default;
-            Notice("계정을 삭제했어요.");
+            await client.DeleteAccountAsync(closing.Token);
+            RememberAutoStart(autoStart.Remove); ConsentInput.IsChecked = false; lastNotice = default;
+            Notice("계정을 삭제했어요." + (client.ProfileCleanupPending ? " 등록한 학교 Wi-Fi는 지우지 못했어요. 다음에 와글을 열 때 다시 지울게요." : ""));
         });
     }
     private async void ClearHistoryClicked(object sender, RoutedEventArgs e) => await RunAsync(async () => { await client.ClearHistoryAsync(closing.Token); Notice("이 기기의 연결 기록을 비웠어요."); });
