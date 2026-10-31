@@ -2,7 +2,13 @@ using System.Text.RegularExpressions;
 
 namespace Waggle.Core;
 
-public enum Failure { InvalidInput, Unauthorized, RateLimited, Offline, Unavailable, InvalidResponse, Storage }
+public enum Failure { InvalidInput, Unauthorized, RateLimited, Offline, Unavailable, InvalidResponse, Storage, Conflict }
+/// <summary>A student's request to register the in-school Wi-Fi they are connected to. Sent once, only on user action.</summary>
+public sealed record WifiRequestInput(string Room, string Ssid, string Security, string? Password)
+{
+    public override string ToString() => "WifiRequestInput [redacted]";
+}
+public sealed record WifiRequestReceipt(string Status);
 public sealed class MemberException(Failure failure) : Exception("waggle_" + failure)
 {
     public Failure Failure { get; } = failure;
@@ -49,4 +55,5 @@ public interface IMemberApi : IDisposable
     Task<Encyclopedia> GetEncyclopediaAsync(string token, CancellationToken ct);
     Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct);
     Task LogoutAsync(string token, CancellationToken ct);
+    Task SubmitWifiRequestAsync(string token, WifiRequestInput input, CancellationToken ct);
 }

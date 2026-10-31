@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import type { ClientSchoolConfig } from "../../shared/client-config";
 import type { AccessPoint, Network, SchoolSnapshot, Security } from "../../shared/school";
 import { securityOptions } from "../../shared/school";
+import type { WifiRequestItem } from "../../shared/wifi-request";
 import { CharacterStore, migrateCharacters } from "./characters";
 import { CredentialCipher } from "./crypto";
 import { invalid, SchoolError, unavailable } from "./errors";
@@ -26,13 +27,7 @@ function migrateWifiRequests(database: Database.Database) {
     PRAGMA user_version=3;
   `);
 }
-export type WifiRequest = {
-  id: string;
-  room: string;
-  ssid: string;
-  security: Security;
-  createdAt: string;
-};
+export type WifiRequest = WifiRequestItem;
 export function migrateSchoolDatabase(database: Database.Database, key: Buffer) {
   const cipher = new CredentialCipher(key);
   database.pragma("foreign_keys = ON");

@@ -108,6 +108,8 @@ public sealed class SessionTests
         public Task<Encyclopedia> GetEncyclopediaAsync(string token, CancellationToken ct) { Guard(); if (Limited) throw new MemberException(Failure.RateLimited); if (CatalogOffline) throw new MemberException(Failure.Offline); if (RejectOldCatalog && token == ProtocolTests.Pair.AccessToken) throw new MemberException(Failure.Unauthorized); return Task.FromResult(Catalog); }
         public Task<Collection> SyncCollectionAsync(string token, ConnectionReport[] reports, CancellationToken ct) { Guard(); Reports.AddRange(reports); return Task.FromResult(Collection); }
         public Task LogoutAsync(string token, CancellationToken ct) { Guard(); LoggedOut.Add(token); return Task.CompletedTask; }
+        public List<WifiRequestInput> WifiRequests = [];
+        public Task SubmitWifiRequestAsync(string token, WifiRequestInput input, CancellationToken ct) { Guard(); WifiRequests.Add(input); return Task.CompletedTask; }
         public void Dispose() { }
     }
 }

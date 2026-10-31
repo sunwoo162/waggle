@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, KeyRound, LayoutDashboard, MapPin, Radio, Sparkles } from "lucide-react";
+import { BookOpen, Inbox, KeyRound, LayoutDashboard, MapPin, Radio, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,6 +8,7 @@ const items = [
   { href: "/admin", title: "프로젝트 시작", icon: LayoutDashboard },
   { href: "/admin/networks", title: "네트워크", icon: Radio },
   { href: "/admin/access-points", title: "AP 위치", icon: MapPin },
+  { href: "/admin/wifi-requests", title: "등록 요청", icon: Inbox },
   { href: "/admin/characters", title: "도감 관리", icon: Sparkles },
   { href: "/admin/invites", title: "개인 코드", icon: KeyRound },
   { href: "/admin/documents", title: "프로젝트 문서", icon: BookOpen },

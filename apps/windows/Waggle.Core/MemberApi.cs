@@ -51,6 +51,13 @@ public sealed class MemberApi : IMemberApi
         var collection = await SendAsync<Collection>("collection", reports.Length == 0 ? null : new { reports }, token, ct, 512 * 1024);
         collection.Validate(); return collection;
     }
+    public async Task SubmitWifiRequestAsync(string token, WifiRequestInput input, CancellationToken ct)
+    {
+        if (input.Room.Trim() is not { Length: > 0 and <= 40 } || input.Ssid.Length is 0 or > 32 || input.Security is not ("open" or "wpa2-personal" or "wpa3-personal"))
+            throw new MemberException(Failure.InvalidInput);
+        var receipt = await SendAsync<WifiRequestReceipt>("wifi-requests", new { room = input.Room.Trim(), ssid = input.Ssid, security = input.Security, password = input.Password ?? "" }, token, ct, 4096);
+        if (receipt.Status != "received") throw new MemberException(Failure.InvalidResponse);
+    }
     private async Task<T> SendAsync<T>(string path, object? body, string? bearer, CancellationToken ct, int maximumBytes = 65_536)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -68,6 +75,7 @@ public sealed class MemberApi : IMemberApi
                     HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => Failure.Unauthorized,
                     HttpStatusCode.TooManyRequests => Failure.RateLimited,
                     HttpStatusCode.BadRequest => Failure.InvalidInput,
+                    HttpStatusCode.Conflict => Failure.Conflict,
                     _ => Failure.Unavailable
                 });
             if (path == "logout")

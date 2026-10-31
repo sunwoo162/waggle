@@ -219,6 +219,23 @@ public sealed class ClientCoordinator(MemberSession session, SchoolConfigSync co
         }
         finally { gate.Release(); }
     }
+    // The currently connected Wi-Fi can be requested only when it is not already a registered school network.
+    public bool CanRequestCurrentWifi => Observation?.Connection is { Ssid.Length: > 0, Security: "open" or "wpa2-personal" or "wpa3-personal" } connected &&
+        configs.Current is { } school && WifiMatch.ConnectedNetwork(school.Config, connected) is null && school.Config.Networks.All(n => n.Ssid != connected.Ssid);
+    public async Task RequestCurrentWifiAsync(string room, string password, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            RequireClean();
+            if (!CanRequestCurrentWifi) throw new MemberException(Failure.InvalidInput);
+            var connected = Observation!.Connection!;
+            var input = new WifiRequestInput(room, connected.Ssid!, connected.Security, connected.Security == "open" ? null : password);
+            // Duplicate submissions after a 401 retry are harmless: the operator reviews each request.
+            await session.WithAccessAsync(async (_, _, api, token, cancellation) => { await api.SubmitWifiRequestAsync(token, input, cancellation); return true; }, ct);
+        }
+        finally { gate.Release(); }
+    }
     public async Task ClearHistoryAsync(CancellationToken ct)
     {
         await gate.WaitAsync(ct);
