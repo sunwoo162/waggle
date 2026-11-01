@@ -155,15 +155,18 @@ export class CharacterStore {
       invalid("reports", "연결 보고는 한 번에 100개 이하로 보내주세요.");
     const found = new Set<string>();
     const query =
+      // One physical AP may broadcast a different SSID per band (e.g. 5G and 2.4G names), so the
+      // reported SSID only has to be an enabled registered network, while the BSSID must be the AP's.
       this.db.prepare(`SELECT a.id,(c.image_hash IS NOT NULL) AS published FROM school_ap a
       JOIN school_network n ON n.id=a.network_id LEFT JOIN school_character c ON c.ap_id=a.id
       JOIN school_ap_bssid b ON b.ap_id=a.id
-      WHERE a.id=? AND n.ssid=? AND b.bssid=? AND a.enabled=1 AND n.enabled=1`);
+      WHERE a.id=? AND b.bssid=? AND a.enabled=1 AND n.enabled=1
+        AND EXISTS (SELECT 1 FROM school_network r WHERE r.ssid=? AND r.enabled=1)`);
     for (const inputReport of value.reports) {
       const r = object(inputReport, ["apId", "ssid", "bssid"]);
       const row =
         isApId(r.apId) && typeof r.ssid === "string" && typeof r.bssid === "string"
-          ? (query.get(r.apId, r.ssid, r.bssid) as { id: string; published: number } | undefined)
+          ? (query.get(r.apId, r.bssid, r.ssid) as { id: string; published: number } | undefined)
           : undefined;
       if (!row) invalid("reports", "현재 학교 설정과 일치하는 연결만 수집할 수 있습니다.");
       // A real connection to an AP whose character is not published yet is accepted but not collected,

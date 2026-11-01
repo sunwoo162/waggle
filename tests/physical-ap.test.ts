@@ -119,3 +119,93 @@ test("v3 학교 DB는 명시적 이전으로 기존 BSSID를 그대로 묶음 �
   assert.deepEqual(reopened.clientConfig().accessPoints[0].bssids, [saved.bssid]);
   db.close();
 });
+
+test("실의 두 밴드 이름을 한 번에 등록하고 같은 비밀번호로 함께 배포한다", () => {
+  const { db, store } = setup();
+  const before = store.clientConfig().version;
+  const saved = store.saveNetworks({
+    name: "합성 92실",
+    ssid: "qa_5G_92",
+    pairSsid: "qa_2.4G_92",
+    security: "wpa2-personal",
+    password: "synthetic-fixture-only",
+    enabled: true,
+  });
+  assert.deepEqual(
+    saved.map((n) => [n.name, n.ssid]),
+    [
+      ["합성 92실", "qa_5G_92"],
+      ["합성 92실 (qa_2.4G_92)", "qa_2.4G_92"],
+    ],
+  );
+  const config = store.clientConfig();
+  assert.ok(config.version > before);
+  for (const ssid of ["qa_5G_92", "qa_2.4G_92"])
+    assert.equal(config.networks.find((n) => n.ssid === ssid)?.password, "synthetic-fixture-only");
+  const count = () =>
+    (db.prepare("SELECT COUNT(*) AS n FROM school_network").get() as { n: number }).n;
+  const total = count();
+  for (const bad of [
+    { pairSsid: "qa_5G_93" + "x".repeat(40) },
+    { ssid: "qa_5G_94", pairSsid: "qa_5G_94" },
+    { ssid: "qa_5G_95", pairSsid: "qa_2.4G_92" },
+  ])
+    assert.throws(
+      () =>
+        store.saveNetworks({
+          name: "합성",
+          ssid: "qa_5G_93",
+          security: "wpa2-personal",
+          password: "synthetic-fixture-only",
+          enabled: true,
+          ...bad,
+        }),
+      /invalid/,
+    );
+  // Nothing half-registered: a rejected pair leaves no first network behind.
+  assert.equal(count(), total);
+  assert.throws(
+    () =>
+      store.saveNetworks(
+        { ...saved[0], password: "", pairSsid: "qa_2.4G_99", revision: saved[0].revision },
+        saved[0].id,
+      ),
+    /invalid/,
+  );
+  db.close();
+});
+
+test("한 AP가 밴드마다 다른 SSID를 내보내도 묶인 BSSID로 같은 캐릭터를 수집한다", async () => {
+  const { db, store, ap } = setup();
+  store.saveNetwork({
+    name: "합성 다른 밴드",
+    ssid: "QA-ROOM-2G",
+    security: "open",
+    password: "",
+    enabled: true,
+  });
+  const saved = store.saveAccessPoint({ ...ap, extraBssids: ["02:00:00:00:00:02"] });
+  const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: "#0bb7ae" } })
+    .png()
+    .toBuffer();
+  await store.characters.save(saved.id, {
+    revision: 0,
+    name: "두 밴드",
+    description: "",
+    image: { mime: "image/png", base64: png.toString("base64") },
+  });
+  assert.deepEqual(
+    store.characters.validateReports({
+      reports: [{ apId: saved.id, ssid: "QA-ROOM-2G", bssid: "02:00:00:00:00:02" }],
+    }),
+    [saved.id],
+  );
+  assert.throws(
+    () =>
+      store.characters.validateReports({
+        reports: [{ apId: saved.id, ssid: "NOT-REGISTERED", bssid: "02:00:00:00:00:02" }],
+      }),
+    /invalid/,
+  );
+  db.close();
+});

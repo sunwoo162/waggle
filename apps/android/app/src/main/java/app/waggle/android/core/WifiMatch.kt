@@ -40,10 +40,13 @@ object WifiMatch {
         return config.networks.filter { it.ssid == ssid && it.security == security }.singleOrNull()
     }
 
-    /** The registered AP (character) for an actual OS-confirmed connection: SSID, BSSID and security must all match. */
+    /**
+     * The registered AP (character) for an actual OS-confirmed connection: the SSID and security must be a registered
+     * room network and the BSSID one of the AP's. One physical AP may broadcast a different SSID per band.
+     */
     fun connectedAp(config: SchoolConfig, connection: ObservedConnection?): ApConfig? {
-        val network = connectedNetwork(config, connection) ?: return null
+        connectedNetwork(config, connection) ?: return null
         val bssid = bssid(connection?.bssid) ?: return null
-        return config.accessPoints.firstOrNull { bssid in it.allBssids && it.networkId == network.id }
+        return config.accessPoints.firstOrNull { ap -> bssid in ap.allBssids && config.networks.any { it.id == ap.networkId } }
     }
 }

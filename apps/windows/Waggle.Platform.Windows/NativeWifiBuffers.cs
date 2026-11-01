@@ -50,7 +50,10 @@ internal static class NativeWifiBuffers
             DateTimeOffset lastSeen;
             try { lastSeen = DateTimeOffset.FromFileTime((long)timestamp); } catch (ArgumentOutOfRangeException) { continue; }
             var secured = (BinaryPrimitives.ReadUInt16LittleEndian(entry[88..]) & 0x10) != 0;
-            result.Add(new(ssid, bssid, secured, (int)quality, lastSeen));
+            // ulChCenterFrequency is in kHz; anything outside the Wi-Fi bands is treated as unknown.
+            var kilohertz = U32(entry, 92);
+            var megahertz = kilohertz is >= 2_400_000 and <= 7_200_000 ? (int)(kilohertz / 1000) : 0;
+            result.Add(new(ssid, bssid, secured, (int)quality, lastSeen, megahertz));
         }
         return [.. result];
     }

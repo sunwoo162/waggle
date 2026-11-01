@@ -24,7 +24,7 @@ export function NetworkEditor({
       security,
       password: fd.get("password") || "",
       enabled: fd.has("enabled"),
-      ...(network ? { revision: network.revision } : {}),
+      ...(network ? { revision: network.revision } : { pairSsid: fd.get("pairSsid") || "" }),
     });
   }
   return (
@@ -56,6 +56,23 @@ export function NetworkEditor({
             />
             <small id="ssid-help">최대 32바이트. 이름 앞뒤의 공백도 포함합니다.</small>
           </label>
+          {network ? null : (
+            <label htmlFor="network-pair-ssid">
+              같은 실의 다른 밴드 Wi-Fi 이름 (선택)
+              <input
+                id="network-pair-ssid"
+                name="pairSsid"
+                maxLength={32}
+                autoComplete="off"
+                aria-describedby="pair-ssid-help"
+                placeholder="예: 5G 이름을 위에 적었다면 2.4G 이름"
+              />
+              <small id="pair-ssid-help">
+                두 밴드의 보안 방식과 비밀번호가 같을 때만 입력하세요. 두 네트워크를 함께
+                등록합니다.
+              </small>
+            </label>
+          )}
           <label htmlFor="network-security">
             보안 방식
             <select
