@@ -16,6 +16,7 @@
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "auth:setup": "node scripts/setup-auth.mjs",
     "auth:migrate": "tsx apps/admin/scripts/migrate-auth.mts",
+    "auth:whoami": "tsx apps/admin/scripts/datagsm-whoami.mts",
     "settings:setup": "node scripts/setup-school.mjs",
     "settings:migrate": "tsx apps/admin/scripts/migrate-school.mts",
     "settings:rotate-key": "tsx apps/admin/scripts/rotate-school-key.mts",
