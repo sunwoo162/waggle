@@ -26,6 +26,7 @@ const url = whoamiAuthorizeUrl({ clientId, redirectUri, state, challenge });
 
 const page = (text: string) =>
   `<!doctype html><meta charset="utf-8"><title>와글</title><p style="font:16px sans-serif">${text}</p>`;
+let done = false;
 const server = http.createServer(async (request, response) => {
   const incoming = new URL(request.url ?? "/", base.origin);
   if (incoming.pathname !== "/api/auth/callback/datagsm") {
@@ -35,8 +36,13 @@ const server = http.createServer(async (request, response) => {
   const got = Buffer.from(incoming.searchParams.get("state") ?? "");
   const code = incoming.searchParams.get("code");
   const expected = Buffer.from(state);
-  const ok = code && got.length === expected.length && timingSafeEqual(got, expected);
-  const id = ok ? await readOwnAccountId(fetch, { code, clientId, redirectUri, verifier }) : null;
+  // A request without this run's state (a stray link, a reload after finishing) never ends the run.
+  if (done || got.length !== expected.length || !timingSafeEqual(got, expected)) {
+    response.writeHead(400, { "cache-control": "no-store" }).end();
+    return;
+  }
+  done = true;
+  const id = code ? await readOwnAccountId(fetch, { code, clientId, redirectUri, verifier }) : null;
   response
     .writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" })
     .end(
@@ -53,9 +59,11 @@ const server = http.createServer(async (request, response) => {
   }
   server.close();
 });
-server.on("error", () => {
+server.on("error", (error: NodeJS.ErrnoException) => {
   console.error(
-    `${base.port || 80}번 포트를 쓸 수 없습니다. 실행 중인 와글 서버(npm run dev)를 끄고 다시 실행하세요.`,
+    error.code === "EADDRINUSE"
+      ? `${base.port || 80}번 포트를 쓸 수 없습니다. 실행 중인 와글 서버(npm run dev)를 끄고 다시 실행하세요.`
+      : `${base.port || 80}번 포트에서 대기하지 못했습니다(${error.code ?? "알 수 없음"}).`,
   );
   process.exit(1);
 });
