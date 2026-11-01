@@ -47,8 +47,8 @@ export function createSchoolHandler(deps: {
         );
       const store = await deps.getStore();
       if (parts[0] === "networks") {
-        const saved = store.saveNetwork(body.value, parts[1]);
-        store.audit(access.user.id, "network.save", saved.id);
+        for (const saved of store.saveNetworks(body.value, parts[1]))
+          store.audit(access.user.id, "network.save", saved.id);
       } else {
         const saved = store.saveAccessPoint(body.value, parts[1]);
         store.audit(access.user.id, "ap.save", saved.id);

@@ -2,11 +2,17 @@ namespace Waggle.Core;
 
 public sealed record WifiInterface(Guid Id, string Name, bool Busy = false);
 public sealed record ConnectedWifi(string? Ssid, string Bssid, string Security, int Quality);
-public sealed record WifiCandidate(string Ssid, string Bssid, bool Secured, int Quality, DateTimeOffset LastSeen);
+/// <param name="FrequencyMhz">Channel centre frequency; 0 when unknown.</param>
+public sealed record WifiCandidate(string Ssid, string Bssid, bool Secured, int Quality, DateTimeOffset LastSeen, int FrequencyMhz = 0)
+{
+    /// <summary>5 GHz or 6 GHz. These bands rarely reach the next room, unlike 2.4 GHz.</summary>
+    public bool HighBand => FrequencyMhz >= 4900;
+    public bool LowBand => FrequencyMhz is > 0 and < 4900;
+}
 public sealed record WifiObservation(ConnectedWifi? Connection, WifiCandidate[] Candidates, bool Busy = false);
-public sealed record WifiTarget(string NetworkId, NetworkConfig Network, string Bssid, int Quality);
+public sealed record WifiTarget(string NetworkId, NetworkConfig Network, string Bssid, int Quality, bool HighBand = false);
 public enum WifiAction { Keep, Wait, Connect }
-public enum WifiReason { NormalConnection, ForeignConnection, WeakConnection, NoCandidate, Cooldown, PendingConnection, AdapterBusy }
+public enum WifiReason { NormalConnection, ForeignConnection, WeakConnection, NoCandidate, Cooldown, PendingConnection, AdapterBusy, BandUpgrade }
 public sealed record WifiDecision(WifiAction Action, WifiReason Reason, WifiTarget? Target = null);
 public enum WifiFailure { LocationPermission, Permission, RadioOff, Unavailable, InvalidResponse, ProfileRejected, Busy }
 public sealed class WifiException(WifiFailure failure) : Exception("waggle_wifi_" + failure)
@@ -29,10 +35,9 @@ public static class WifiMatch
         connection is null || connection.Quality is < 0 or > 100 ? null : config.Networks.Where(n => n.Ssid == connection.Ssid && n.Security == connection.Security).Take(2).ToArray() is [var only] ? only : null;
     public static ApConfig? ConnectedAp(SchoolConfig config, ConnectedWifi? connection)
     {
-        if (connection is null || connection.Quality is < 0 or > 100) return null;
-        var ap = config.AccessPoints.FirstOrDefault(a => a.AllBssids.Contains(connection.Bssid));
-        if (ap is null) return null;
-        var network = config.Networks.FirstOrDefault(n => n.Id == ap.NetworkId);
-        return network is not null && network.Ssid == connection.Ssid && network.Security == connection.Security ? ap : null;
+        // The connection must be a registered room network; one physical AP may broadcast a different SSID per band.
+        if (ConnectedNetwork(config, connection) is null) return null;
+        var ap = config.AccessPoints.FirstOrDefault(a => a.AllBssids.Contains(connection!.Bssid));
+        return ap is not null && config.Networks.Any(n => n.Id == ap.NetworkId) ? ap : null;
     }
 }

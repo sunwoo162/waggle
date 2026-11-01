@@ -21,7 +21,7 @@ public sealed class NativeWifiTests
         var ssid = Encoding.UTF8.GetBytes(" QA 학교망 "); U32(bytes, 8, (uint)ssid.Length); ssid.CopyTo(bytes, 12);
         new byte[] { 2, 0, 0, 0, 0, 2 }.CopyTo(bytes, 48); U32(bytes, 56, 1); U32(bytes, 68, 65);
         BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(88), (ulong)WifiPolicyTests.Now.ToFileTime());
-        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(96), 0x10); return bytes;
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(96), 0x10); U32(bytes, 100, 5_180_000); return bytes;
     }
     internal static byte[] Connection()
     {
@@ -38,6 +38,7 @@ public sealed class NativeWifiTests
         var bss = NativeWifiBuffers.Bss(Bss()).Single();
         Assert.AreEqual(" QA 학교망 ", bss.Ssid); Assert.AreEqual("02:00:00:00:00:02", bss.Bssid);
         Assert.AreEqual(65, bss.Quality); Assert.IsTrue(bss.Secured); Assert.AreEqual(WifiPolicyTests.Now, bss.LastSeen);
+        Assert.AreEqual(5180, bss.FrequencyMhz); Assert.IsTrue(bss.HighBand);
         var current = NativeWifiBuffers.Connection(Connection());
         Assert.AreEqual(" QA 학교망 ", current!.Ssid); Assert.AreEqual(30, current.Quality); Assert.AreEqual("wpa2-personal", current.Security);
         Assert.AreEqual(40, NativeWifiBuffers.ConnectionParametersSize);

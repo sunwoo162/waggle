@@ -201,7 +201,8 @@ public sealed class CoordinatorTests
     public async Task AbsoluteExpiryStopsWithoutObservingOrRequestingAnotherConnection()
     {
         var f = await Setup(); await f.Client.StartAsync(NativeWifiTests.AdapterId, true, default);
-        f.Time.Advance(32 * 24 * 60 * 60);
+        // The fixture tokens expire relative to the real clock, so jump past that exact moment.
+        f.Time.Now = DateTimeOffset.FromUnixTimeMilliseconds(ProtocolTests.Pair.RefreshExpiresAt).AddSeconds(1);
         await Assert.ThrowsAsync<MemberException>(() => f.Client.TickAsync(default));
         Assert.IsFalse(f.Client.ManagementRequested); Assert.IsFalse(f.Client.Running); Assert.AreEqual(1, f.Wifi.Observations); Assert.AreEqual(0, f.Wifi.Requests);
     }

@@ -66,6 +66,9 @@ class CoreTest {
         dual.validate()
         assertEquals(ap, WifiMatch.connectedAp(dual, ObservedConnection("\"GSM-3-1\"", "02:00:00:00:00:02", WifiMatch.SECURITY_PSK))?.id)
         assertNull(WifiMatch.connectedAp(dual, ObservedConnection("\"GSM-3-1\"", "02:00:00:00:00:03", WifiMatch.SECURITY_PSK)))
+        // One AP broadcasting a different SSID per band: the other registered room name counts too.
+        assertEquals(ap, WifiMatch.connectedAp(dual, ObservedConnection("\"GSM-3-2\"", "02:00:00:00:00:02", WifiMatch.SECURITY_OPEN))?.id)
+        assertNull(WifiMatch.connectedAp(dual, ObservedConnection("\"GSM-9-9\"", "02:00:00:00:00:02", WifiMatch.SECURITY_PSK)))
         assertTrue(dual.acceptsUpdate(dual.copy()))
         val legacy = config.copy(accessPoints = listOf(ApConfig(ap, room1, "02:00:00:00:00:01")))
         assertTrue(legacy.acceptsUpdate(legacy.copy(accessPoints = listOf(ApConfig(ap, room1, "02:00:00:00:00:01", listOf("02:00:00:00:00:01"))))))

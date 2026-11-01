@@ -68,6 +68,82 @@ public sealed class WifiPolicyTests
         var unregisteredBssid = new WifiObservation(null, [new(" QA 학교망 ", "02:00:00:00:00:09", true, 70, Now)]);
         Assert.AreEqual("02:00:00:00:00:09", new WifiPolicy().Decide(Config, unregisteredBssid, Now).Target!.Bssid);
     }
+    // GSM names each room's bands separately (e.g. wi_gen_2.4G_92 and wi_gen_5G_92); names here are synthetic.
+    internal const string FiveGhz = "66666666-6666-4666-8666-666666666666";
+    internal static SchoolConfig Bands => new(1, 1, [new(SchoolConfigTests.NetworkId, "room_2.4G_1", "wpa2-personal", "synthetic-fixture-only"), new(FiveGhz, "room_5G_1", "wpa2-personal", "synthetic-fixture-only")], []);
+    internal static WifiObservation OnLowBand(int quality = 50, int fiveQuality = 70, int connectedFrequency = 2412) => new(
+        new("room_2.4G_1", "02:aa:00:00:00:01", "wpa2-personal", quality),
+        [new("room_2.4G_1", "02:aa:00:00:00:01", true, quality, Now, connectedFrequency), new("room_5G_1", "02:aa:00:00:00:02", true, fiveQuality, Now, 5180)]);
+    [TestMethod]
+    public void UsableLowBandLinkMovesToAStrongHighBandRoomAfterTwoSamples()
+    {
+        var policy = new WifiPolicy();
+        Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, OnLowBand(), Now).Action);
+        var decision = policy.Decide(Bands, OnLowBand(), Now.AddSeconds(10));
+        Assert.AreEqual(WifiAction.Connect, decision.Action); Assert.AreEqual(WifiReason.BandUpgrade, decision.Reason);
+        Assert.AreEqual(FiveGhz, decision.Target!.NetworkId); Assert.AreEqual("02:aa:00:00:00:02", decision.Target.Bssid);
+        policy.Requested(decision.Target, Now.AddSeconds(10));
+        var arrived = OnLowBand() with { Connection = new("room_5G_1", "02:aa:00:00:00:02", "wpa2-personal", 70) };
+        for (var i = 0; i < 4; i++) Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, arrived, Now.AddSeconds(20 + i * 30)).Action);
+    }
+    [TestMethod]
+    public void BandUpgradeNeedsAKnownLowBandLinkAndAStrongHighBandCandidate()
+    {
+        foreach (var observation in new[] { OnLowBand(fiveQuality: 55), OnLowBand(connectedFrequency: 0), OnLowBand(connectedFrequency: 5200), OnLowBand(quality: 50) with { Candidates = [] } })
+        {
+            var policy = new WifiPolicy();
+            for (var i = 0; i < 4; i++) Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, observation, Now.AddSeconds(i * 10)).Action);
+        }
+        // An interrupted streak starts over.
+        var streak = new WifiPolicy();
+        streak.Decide(Bands, OnLowBand(), Now);
+        streak.Decide(Bands, OnLowBand(fiveQuality: 50), Now.AddSeconds(10));
+        Assert.AreEqual(WifiAction.Keep, streak.Decide(Bands, OnLowBand(), Now.AddSeconds(20)).Action);
+        Assert.AreEqual(WifiAction.Connect, streak.Decide(Bands, OnLowBand(), Now.AddSeconds(30)).Action);
+    }
+    [TestMethod]
+    public void OnePhysicalApCollectsOverEitherBandName()
+    {
+        var config = Bands with { AccessPoints = [new(SchoolConfigTests.ApId, FiveGhz, "02:aa:00:00:00:02", ["02:aa:00:00:00:02", "02:aa:00:00:00:01"])] };
+        Assert.AreEqual(SchoolConfigTests.ApId, WifiMatch.ConnectedAp(config, new("room_2.4G_1", "02:aa:00:00:00:01", "wpa2-personal", 60))!.Id);
+        Assert.IsNull(WifiMatch.ConnectedAp(config, new("unregistered", "02:aa:00:00:00:01", "wpa2-personal", 60)));
+    }
+    private static WifiObservation Seen(DateTimeOffset at) => OnLowBand() with { Candidates = [.. OnLowBand().Candidates.Select(c => c with { LastSeen = at })] };
+    [TestMethod]
+    public void FailedBandUpgradeLeavesTheWorkingLinkAloneForLonger()
+    {
+        var policy = new WifiPolicy(); WifiDecision decision = null!;
+        for (var i = 0; i < 2; i++) decision = policy.Decide(Bands, OnLowBand(), Now.AddSeconds(i * 10));
+        policy.Requested(decision.Target!, Now.AddSeconds(10));
+        policy.Decide(Bands, OnLowBand(), Now.AddSeconds(41)); // never reached: times out
+        Assert.AreEqual(FiveGhz, policy.TimedOutNetworkId);
+        for (var i = 0; i < 6; i++) Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, Seen(Now.AddMinutes(10 + i)), Now.AddMinutes(10 + i)).Action);
+        Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, Seen(Now.AddMinutes(41)), Now.AddMinutes(41)).Action);
+        Assert.AreEqual(WifiAction.Connect, policy.Decide(Bands, Seen(Now.AddMinutes(41)), Now.AddMinutes(41).AddSeconds(10)).Action);
+        // A rejected connect attempt (no Requested) counts the same.
+        var rejected = new WifiPolicy();
+        for (var i = 0; i < 2; i++) decision = rejected.Decide(Bands, OnLowBand(), Now.AddSeconds(i * 10));
+        rejected.Failed(decision.Target!.Bssid, Now.AddSeconds(10));
+        Assert.AreEqual(WifiAction.Keep, rejected.Decide(Bands, Seen(Now.AddMinutes(10)), Now.AddMinutes(10)).Action);
+        Assert.AreEqual(WifiAction.Keep, rejected.Decide(Bands, Seen(Now.AddMinutes(10)), Now.AddMinutes(10).AddSeconds(10)).Action);
+    }
+    [TestMethod]
+    public void UpgradeStreakDoesNotSurviveATripToAnotherNetwork()
+    {
+        var policy = new WifiPolicy();
+        policy.Decide(Bands, OnLowBand(), Now);
+        policy.Decide(Bands, OnLowBand() with { Connection = new("home", "02:ff:00:00:00:01", "wpa2-personal", 80) }, Now.AddSeconds(10));
+        Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, OnLowBand(), Now.AddSeconds(20)).Action);
+        Assert.AreEqual(WifiAction.Connect, policy.Decide(Bands, OnLowBand(), Now.AddSeconds(30)).Action);
+    }
+    [TestMethod]
+    public void WeakLinkPrefersAStrongHighBandOverAStrongerLowBand()
+    {
+        var seen = new WifiObservation(null, [new("room_2.4G_1", "02:aa:00:00:00:01", true, 90, Now, 2412), new("room_5G_1", "02:aa:00:00:00:02", true, 65, Now, 5180)]);
+        Assert.AreEqual(FiveGhz, new WifiPolicy().Decide(Bands, seen, Now).Target!.NetworkId);
+        var weakFive = seen with { Candidates = [seen.Candidates[0], seen.Candidates[1] with { Quality = 55 }] };
+        Assert.AreEqual(SchoolConfigTests.NetworkId, new WifiPolicy().Decide(Bands, weakFive, Now).Target!.NetworkId);
+    }
     [TestMethod]
     public void SameRoomMoveIsConfirmedOnlyWhenTheTargetBssidIsReached()
     {

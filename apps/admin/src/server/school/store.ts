@@ -340,7 +340,46 @@ export class SchoolStore {
     })();
   }
   saveNetwork(input: unknown, id?: string): Network {
-    const v = object(input, ["name", "ssid", "security", "password", "enabled", "revision"]);
+    return this.saveNetworks(input, id)[0];
+  }
+  /**
+   * Saves one network. On creation, `pairSsid` also registers the same room's other band
+   * (e.g. a 5 GHz and a 2.4 GHz name on one AP) with the same security and password, atomically.
+   */
+  saveNetworks(input: unknown, id?: string): Network[] {
+    const v = object(input, [
+      "name",
+      "ssid",
+      "security",
+      "password",
+      "enabled",
+      "revision",
+      "pairSsid",
+    ]);
+    const pair = v.pairSsid === undefined || v.pairSsid === "" ? undefined : v.pairSsid;
+    if (pair !== undefined && id)
+      invalid("pairSsid", "다른 밴드 이름은 새로 등록할 때만 함께 입력할 수 있습니다.");
+    const pairSsid =
+      pair === undefined ? undefined : networkSecret({ ...v, ssid: pair, password: "" }).ssid;
+    if (pairSsid !== undefined && pairSsid === v.ssid)
+      invalid("pairSsid", "다른 밴드의 Wi-Fi 이름은 첫 번째 이름과 달라야 합니다.");
+    return this.database
+      .transaction(() => {
+        const saved = [this.saveOneNetwork(v, id)];
+        if (pairSsid !== undefined) {
+          if (this.database.prepare("SELECT 1 FROM school_network WHERE ssid=?").get(pairSsid))
+            invalid("pairSsid", "다른 밴드의 Wi-Fi 이름이 이미 등록돼 있습니다.");
+          // Cut by code points so an emoji near the limit is never split into an invalid half.
+          const name = Array.from(`${text(v.name, "name", 80)} (${pairSsid})`)
+            .slice(0, 80)
+            .join("");
+          saved.push(this.saveOneNetwork({ ...v, name, ssid: pairSsid }));
+        }
+        return saved;
+      })
+      .immediate();
+  }
+  private saveOneNetwork(v: Record<string, unknown>, id?: string): Network {
     const name = text(v.name, "name", 80);
     const { ssid, security, password } = networkSecret(v);
     const active = enabled(v.enabled);
