@@ -369,7 +369,10 @@ export class SchoolStore {
         if (pairSsid !== undefined) {
           if (this.database.prepare("SELECT 1 FROM school_network WHERE ssid=?").get(pairSsid))
             invalid("pairSsid", "다른 밴드의 Wi-Fi 이름이 이미 등록돼 있습니다.");
-          const name = `${text(v.name, "name", 80)} (${pairSsid})`.slice(0, 80);
+          // Cut by code points so an emoji near the limit is never split into an invalid half.
+          const name = Array.from(`${text(v.name, "name", 80)} (${pairSsid})`)
+            .slice(0, 80)
+            .join("");
           saved.push(this.saveOneNetwork({ ...v, name, ssid: pairSsid }));
         }
         return saved;

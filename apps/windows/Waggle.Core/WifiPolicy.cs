@@ -9,6 +9,9 @@ public sealed class WifiPolicy
     private bool pendingSameNetwork;
     private int weakSamples;
     private int upgradeSamples;
+    // Band upgrades leave a working link, so a failed one is not retried for much longer than an ordinary failure.
+    private readonly Dictionary<string, DateTimeOffset> noUpgrade = [];
+    private string? upgrading;
     private DateTimeOffset? lastRequest;
     private (string NetworkId, DateTimeOffset Deadline)? pending;
     private string? pendingBssid;
@@ -16,11 +19,13 @@ public sealed class WifiPolicy
     public WifiDecision Decide(SchoolConfig config, WifiObservation observation, DateTimeOffset now)
     {
         config.Validate(); TimedOutNetworkId = null;
+        // The upgrade streak counts consecutive decisions only; any other outcome below starts it over.
+        var streak = upgradeSamples; upgradeSamples = 0;
         var current = WifiMatch.ConnectedNetwork(config, observation.Connection);
         if (pending is { } request)
         {
             // Moving within the same room counts only once the requested BSSID is actually reached.
-            if (current?.Id == request.NetworkId && (!pendingSameNetwork || observation.Connection?.Bssid == pendingBssid)) { pending = null; weakSamples = 0; }
+            if (current?.Id == request.NetworkId && (!pendingSameNetwork || observation.Connection?.Bssid == pendingBssid)) { pending = null; weakSamples = 0; upgrading = null; }
             else if (now >= request.Deadline) { TimedOutNetworkId = request.NetworkId; Failed(pendingBssid!, now); }
             else return new(WifiAction.Wait, WifiReason.PendingConnection);
         }
@@ -35,20 +40,20 @@ public sealed class WifiPolicy
                 // 2.4 GHz reaches the neighbouring rooms, so a usable 2.4 GHz link can be the room the student left.
                 // A strong registered 5/6 GHz network nearby is the better signal of where the device is now.
                 var band = observation.Candidates.FirstOrDefault(c => c.Bssid == connected.Bssid);
-                var upgrade = band is { LowBand: true } ? Best(Targets(config, observation, now).Where(t => t.HighBand && t.Quality >= StrongHighBand)) : null;
-                if (upgrade is null) { upgradeSamples = 0; return new(WifiAction.Keep, WifiReason.NormalConnection); }
-                if (++upgradeSamples < 2) return new(WifiAction.Keep, WifiReason.NormalConnection);
-                upgradeSamples = 0; decidedFrom = current.Id;
+                var upgrade = band is { LowBand: true } ? Best(Targets(config, observation, now).Where(t => t.HighBand && t.Quality >= StrongHighBand && !(noUpgrade.TryGetValue(t.NetworkId, out var until) && now < until))) : null;
+                if (upgrade is null) return new(WifiAction.Keep, WifiReason.NormalConnection);
+                upgradeSamples = streak + 1;
+                if (upgradeSamples < 2) return new(WifiAction.Keep, WifiReason.NormalConnection);
+                upgradeSamples = 0; decidedFrom = current.Id; upgrading = upgrade.NetworkId;
                 return new(WifiAction.Connect, WifiReason.BandUpgrade, upgrade);
             }
-            upgradeSamples = 0;
             weakSamples++;
             if (weakSamples < 3) return new(WifiAction.Keep, WifiReason.WeakConnection);
         }
-        else { weakSamples = 0; upgradeSamples = 0; }
+        else weakSamples = 0;
         var best = Best(Targets(config, observation, now));
         if (best is null || observation.Connection is { } old && best.Quality - old.Quality < 15) return new(WifiAction.Keep, WifiReason.NoCandidate);
-        decidedFrom = current?.Id;
+        decidedFrom = current?.Id; upgrading = null;
         return new(WifiAction.Connect, WifiReason.WeakConnection, best);
     }
     private const int StrongHighBand = 60;
@@ -77,7 +82,8 @@ public sealed class WifiPolicy
     public void Failed(string bssid, DateTimeOffset now, string? networkId = null)
     {
         lastRequest = now; weakSamples = 0; pending = null; blocked[bssid] = now.AddMinutes(5);
+        if (upgrading is not null) { noUpgrade[upgrading] = now.AddMinutes(30); upgrading = null; }
         if (networkId is not null) blockedNetworks[networkId] = now.AddMinutes(5);
     }
-    public void Reset() { weakSamples = 0; upgradeSamples = 0; lastRequest = null; pending = null; pendingBssid = null; decidedFrom = null; pendingSameNetwork = false; TimedOutNetworkId = null; blocked.Clear(); blockedNetworks.Clear(); }
+    public void Reset() { weakSamples = 0; upgradeSamples = 0; lastRequest = null; pending = null; pendingBssid = null; decidedFrom = null; pendingSameNetwork = false; TimedOutNetworkId = null; blocked.Clear(); blockedNetworks.Clear(); noUpgrade.Clear(); upgrading = null; }
 }

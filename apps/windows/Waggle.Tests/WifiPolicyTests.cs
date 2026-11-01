@@ -108,6 +108,34 @@ public sealed class WifiPolicyTests
         Assert.AreEqual(SchoolConfigTests.ApId, WifiMatch.ConnectedAp(config, new("room_2.4G_1", "02:aa:00:00:00:01", "wpa2-personal", 60))!.Id);
         Assert.IsNull(WifiMatch.ConnectedAp(config, new("unregistered", "02:aa:00:00:00:01", "wpa2-personal", 60)));
     }
+    private static WifiObservation Seen(DateTimeOffset at) => OnLowBand() with { Candidates = [.. OnLowBand().Candidates.Select(c => c with { LastSeen = at })] };
+    [TestMethod]
+    public void FailedBandUpgradeLeavesTheWorkingLinkAloneForLonger()
+    {
+        var policy = new WifiPolicy(); WifiDecision decision = null!;
+        for (var i = 0; i < 2; i++) decision = policy.Decide(Bands, OnLowBand(), Now.AddSeconds(i * 10));
+        policy.Requested(decision.Target!, Now.AddSeconds(10));
+        policy.Decide(Bands, OnLowBand(), Now.AddSeconds(41)); // never reached: times out
+        Assert.AreEqual(FiveGhz, policy.TimedOutNetworkId);
+        for (var i = 0; i < 6; i++) Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, Seen(Now.AddMinutes(10 + i)), Now.AddMinutes(10 + i)).Action);
+        Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, Seen(Now.AddMinutes(41)), Now.AddMinutes(41)).Action);
+        Assert.AreEqual(WifiAction.Connect, policy.Decide(Bands, Seen(Now.AddMinutes(41)), Now.AddMinutes(41).AddSeconds(10)).Action);
+        // A rejected connect attempt (no Requested) counts the same.
+        var rejected = new WifiPolicy();
+        for (var i = 0; i < 2; i++) decision = rejected.Decide(Bands, OnLowBand(), Now.AddSeconds(i * 10));
+        rejected.Failed(decision.Target!.Bssid, Now.AddSeconds(10));
+        Assert.AreEqual(WifiAction.Keep, rejected.Decide(Bands, Seen(Now.AddMinutes(10)), Now.AddMinutes(10)).Action);
+        Assert.AreEqual(WifiAction.Keep, rejected.Decide(Bands, Seen(Now.AddMinutes(10)), Now.AddMinutes(10).AddSeconds(10)).Action);
+    }
+    [TestMethod]
+    public void UpgradeStreakDoesNotSurviveATripToAnotherNetwork()
+    {
+        var policy = new WifiPolicy();
+        policy.Decide(Bands, OnLowBand(), Now);
+        policy.Decide(Bands, OnLowBand() with { Connection = new("home", "02:ff:00:00:00:01", "wpa2-personal", 80) }, Now.AddSeconds(10));
+        Assert.AreEqual(WifiAction.Keep, policy.Decide(Bands, OnLowBand(), Now.AddSeconds(20)).Action);
+        Assert.AreEqual(WifiAction.Connect, policy.Decide(Bands, OnLowBand(), Now.AddSeconds(30)).Action);
+    }
     [TestMethod]
     public void WeakLinkPrefersAStrongHighBandOverAStrongerLowBand()
     {

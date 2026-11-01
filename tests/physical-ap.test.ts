@@ -162,8 +162,18 @@ test("실의 두 밴드 이름을 한 번에 등록하고 같은 비밀번호로
         }),
       /invalid/,
     );
+  // A generated name is cut by code points, so an emoji at the limit never makes it invalid.
+  const long = store.saveNetworks({
+    name: `${"가".repeat(78)}🙂`,
+    ssid: "qa_5G_96",
+    pairSsid: "qa_2.4G_96",
+    security: "open",
+    password: "",
+    enabled: true,
+  });
+  assert.equal(long[1].name, `${"가".repeat(78)}🙂`);
   // Nothing half-registered: a rejected pair leaves no first network behind.
-  assert.equal(count(), total);
+  assert.equal(count(), total + 2);
   assert.throws(
     () =>
       store.saveNetworks(
