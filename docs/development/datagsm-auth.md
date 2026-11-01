@@ -43,7 +43,7 @@ http://localhost:3000/api/auth/callback/datagsm
 
 권장 PKCE 교환에는 DataGSM client_secret이 필요하지 않다. 와글 자체 세션 암호화 키 BETTER_AUTH_SECRET과 구분한다.
 
-DataGSM에서 본인 **계정 고유 ID**를 확인해 WAGGLE_ADMIN_DATAGSM_ID에 넣는다. 공식 /userinfo 응답의 최상위 id가 기준이다. ID를 모르면 DataGSM 계정·운영 절차에서 확인해야 한다. 첫 로그인한 사람을 자동 관리자로 등록하지 않는다.
+DataGSM에서 본인 **계정 고유 ID**를 확인해 WAGGLE_ADMIN_DATAGSM_ID에 넣는다. 공식 /userinfo 응답의 최상위 id가 기준이다. DataGSM 화면에서 찾을 수 없으면 client ID를 넣은 뒤 `npm run auth:whoami`를 실행한다. 와글 서버를 끈 상태에서 등록 콜백 주소로 잠시 대기하고, 브라우저 로그인 한 번 뒤 최상위 id만 터미널에 출력한다. 토큰·프로필은 저장하거나 출력하지 않으며 로컬 http 개발 주소에서만 동작한다. 첫 로그인한 사람을 자동 관리자로 등록하지 않는다.
 
 ## 스키마 준비와 실행
 
