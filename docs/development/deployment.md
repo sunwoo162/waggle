@@ -38,7 +38,8 @@ EOF
 `DATAGSM_CLIENT_ID`와 `WAGGLE_ADMIN_DATAGSM_ID`는 서버에서 편집기로 직접 채운다. 운영자 ID는 로컬에서 `npm run auth:whoami`로 확인한 값과 같다(DataGSM 계정 ID는 클라이언트와 무관). 로컬 개발 키를 복사하지 않고 새로 만든다.
 
 ```sh
-export WAGGLE_DOMAIN=<도메인>
+# compose가 매번 자동으로 읽는 파일(커밋 금지). 이후 업데이트·백업 명령도 이 값으로 동작한다.
+echo "WAGGLE_DOMAIN=<도메인>" > deploy/.env
 docker compose -f deploy/compose.yaml build
 # DB 스키마 준비는 운영자가 직접 실행한다(자동 실행하지 않음).
 docker compose -f deploy/compose.yaml run --rm waggle npm run auth:migrate
@@ -66,8 +67,16 @@ docker compose -f deploy/compose.yaml up -d --build
 
 DB는 `waggle-data` 볼륨에 있다. 암호화 키(`deploy/.env.production`)와 DB 백업은 따로 보관한다. 둘을 같은 곳에 두면 Wi-Fi 비밀번호 암호화가 의미 없어진다.
 
+백업은 볼륨 안에 잠깐 만든 뒤 서버의 `backups/`로 꺼내고 볼륨 안 사본은 지운다. 백업에는 세션과 암호화된 토큰·Wi-Fi 비밀번호가 들어 있으므로 소유자만 읽게 두고, 이 서버 밖(다른 디스크·저장소)으로 옮겨 보관한다.
+
 ```sh
-docker compose -f deploy/compose.yaml exec waggle node -e "for (const n of ['auth','school','members']) new (require('better-sqlite3'))('/data/'+n+'.sqlite',{readonly:true}).backup('/data/backup-'+n+'.sqlite')"
+umask 077 && mkdir -p backups
+c="docker compose -f deploy/compose.yaml"
+$c exec waggle node -e "(async()=>{const D=require('better-sqlite3');for(const n of ['auth','school','members'])await new D('/data/'+n+'.sqlite',{readonly:true}).backup('/data/backup-'+n+'.sqlite')})()"
+for n in auth school members; do
+  $c cp waggle:/data/backup-$n.sqlite backups/$n-$(date +%F-%H%M).sqlite
+done
+$c exec waggle sh -c 'rm -f /data/backup-*.sqlite'
 ```
 
 ## 확인할 것

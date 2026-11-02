@@ -1,6 +1,9 @@
 # Waggle admin + API server for a self-hosted Linux machine. See docs/development/deployment.md.
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
+# Fallback toolchain in case better-sqlite3 has no prebuilt binary for this platform (e.g. arm64).
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 COPY apps/admin/package.json apps/admin/
 RUN npm ci

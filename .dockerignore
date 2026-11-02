@@ -16,3 +16,4 @@ apps/android
 **/build
 **/.gradle
 **/__pycache__
+backups/
