@@ -9,7 +9,7 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@next/env": "16.4.3",
+    "@next/env": "16.4.4",
     "better-auth": "1.7.14",
     "better-sqlite3": "13.0.3",
     "lucide-react": "0.577.0",
